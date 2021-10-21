@@ -1,0 +1,16 @@
+# Language
+# - Python
+__pycache__
+
+# IDE
+# - VSCode
+__vscode__
+
+# - Vim
+*~
+
+# Dev
+/__dev
+
+# Misc
+*.tmp

@@ -1,0 +1,10 @@
+numpy
+scipy
+sympy
+pandas
+requests
+dash
+dash-bootstrap-components
+dash-extensions -i https://github.com/thedirtyfew/dash-extensions.git
+matplotlib
+seaborn
