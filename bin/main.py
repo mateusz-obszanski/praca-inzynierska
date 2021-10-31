@@ -15,4 +15,6 @@ def main() -> None:
     )
     compared_data = compare_simulation_data(initial_results, optimized_results)
     visualized_data = generate_visualized_data()
-    save_data(initial_solutions, initial_results, optimized_solutions, optimized_results)
+    save_data(
+        initial_solutions, initial_results, optimized_solutions, optimized_results
+    )

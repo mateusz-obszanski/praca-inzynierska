@@ -1,78 +1,53 @@
+from enum import Enum, auto
 from dataclasses import dataclass
-from collections.abc import Iterator
-from typing import Any, Protocol, Union, runtime_checkable
-from math import pi
 
 
-CoordT = Union[int, float]
+Time = float
 
 
-class Coords(Iterator):
-    def __init__(self, x: CoordT, *args: CoordT, immutable: bool = False) -> None:
-        super().__init__()
-        self.immutable = immutable
-        self._coords = [x, *args]
+VehicleDecisions = type(NotImplemented)
+"""
+Endcodes heterogenous decision sequence for each vehicle simulable.
+"""
 
-    def __iter__(self) -> Iterator[CoordT]:
-        return iter(self._coords)
-
-    @property
-    def x(self) -> CoordT:
-        return self._coords[0]
-
-    @x.setter
-    def x(self, v: CoordT) -> None:
-        if self.immutable:
-            self._coords[0] = v
-            return
-
-        raise MutatingImmutableCoordsError("x")
-
-    @property
-    def y(self) -> CoordT:
-        return self._coords[1]
-
-    @y.setter
-    def y(self, v: CoordT) -> None:
-        if self.immutable:
-            self._coords[1] = v
-            return
-
-        raise MutatingImmutableCoordsError("x")
-
-    @property
-    def z(self) -> CoordT:
-        return self._coords[2]
-
-    @z.setter
-    def z(self, v: CoordT) -> None:
-        if self.immutable:
-            self._coords[2] = v
-            return
-
-        raise MutatingImmutableCoordsError("x")
-
-
-class CoordsError(Exception):
+# TODO implement functions for advancing vehicle and vertex actions in action selector
+# TODO implement functionality that could be modified in the future (i.e. calc functions) as abstract classes for dependency injection
+class VehicleActionSelector:
     """
-    Abstract coords error.
+    Selects next action from sequence of heterogenous actions encoded in VehicleDecisions
+    based on vehicle simulable state (i.e. where it is, energy left etc.), available vertex
+    connections' states and global environments state.
     """
 
 
-class MutatingImmutableCoordsError(CoordsError):
-    ...
+class Distribution(Enum):
+    UNIFORM = auto()
+    NORMAL = auto()
 
 
 @dataclass
-class PolarCoords2D:
-    def __init__(self, angle: CoordT, radius: CoordT) -> None:
-        """
-        angle in radians 0 <= angle <= 2*pi
-        """
-        assert 0 <= angle <= 2 * pi
+class VehicleState:
+    base_speed: float
 
 
-@runtime_checkable
-class Simulable(Protocol):
-    def simulate(self, *args, **kwargs) -> Any:
-        ...
+@dataclass
+class ConnectionState:
+    length: float
+    wind_speed: float
+
+
+@dataclass
+class VertexState:
+    goods: float
+
+
+@dataclass
+class EnvironmentState:
+    time: Time
+
+
+@dataclass
+class VehicleSimulable:
+    decisions: Decisions
+    current_action_selector: ActionSelector
+

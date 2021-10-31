@@ -51,7 +51,9 @@ if __name__ == "__main__":
 
     source: Path = args.source
     destination: Path = args.destination
-    to_exclude = [destination] + (args.previous_source is not None) * [args.previous_source]
+    to_exclude = [destination] + (args.previous_source is not None) * [
+        args.previous_source
+    ]
 
     # validate_args(source, destination)
 
