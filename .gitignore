@@ -4,13 +4,16 @@ __pycache__
 
 # IDE
 # - VSCode
-__vscode__
+.vscode
+# - Jupyter
+.ipynb_checkpoints
 
 # - Vim
-*~
+*~*
 
 # Dev
 # /__dev
+*playground*
 
 # Misc
 *.tmp
