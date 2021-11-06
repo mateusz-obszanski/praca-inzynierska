@@ -1,2 +1,2 @@
 from .__algorithms import *
-from genetic import Genetic
+from .genetic import Genetic
