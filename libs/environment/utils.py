@@ -2,7 +2,8 @@ from typing import Optional, Union
 import itertools as it
 import numpy as np
 import pandas as pd
-from scipy.spatial import distance_matrix
+from scipy.spatial import distance_matrix as sci_distance_mx
+from copy import deepcopy
 from ..types import Distribution
 from ..utils import symmetricize, antisymmetricize
 
@@ -15,6 +16,7 @@ Natural = int
 WindMx = np.ndarray
 """antisymmetric matrix of vehicle's wind speed boost"""
 SpeedMx = np.ndarray
+TimeMx = np.ndarray
 
 
 def coords_random(
@@ -41,48 +43,47 @@ def coords_random(
 def coords_distances(
     coords: CoordsDF,
     symmetric: bool = True,
-    prohibition_p: float = 0,
     std_dev: Optional[float] = None,
-    forbidden_val: float = -1,
     symmetricize_from_triu: bool = True,
 ) -> DistanceMx:
     """
-    Returns lengths beetween indices with given coords. If `symmetric`
-    and `std_dev` is `None`, returns physical lengths else generates noise.
+    Returns lengths beetween indices with given coords.
+    If `symmetric` and `std_dev` is `None`, returns physical lengths else generates noise.
     If not `symmetric`, `std_dev` must be provided.
     """
 
-    forbidden = np.random.choice(  # type: ignore
-        [True, False],
-        size=2 * [coords.shape[0]],
-        p=[prohibition_p, 1 - prohibition_p],
-    )
-
-    forbidden[np.diag(coords.shape[0] * [True])] = True
-
     coords_np = coords.to_numpy()
-    lengths = distance_matrix(coords_np, coords_np)
+    lengths = sci_distance_mx(coords_np, coords_np)
 
     if std_dev:
-        if not symmetric:
-            raise ValueError("If `symmetric`, `std_dev` must be given")
-        noise = np.abs(np.random.normal(scale=std_dev, size=2 * [coords.shape[0]]))
-        lengths += np.triu(noise, 1) + np.tril(noise, -1)
-
-        lengths = symmetricize(lengths, symmetricize_from_triu)
-        forbidden = symmetricize(forbidden, symmetricize_from_triu)
-
-        lengths[forbidden] = forbidden_val
-
-        return lengths
+        noise = np.abs(np.random.normal(scale=std_dev, size=2*[coords_np.shape[0]]))
+        lengths += noise
 
     if symmetric:
         lengths = symmetricize(lengths)
-        forbidden = symmetricize(forbidden)
 
-    lengths[forbidden] = forbidden_val
+    np.fill_diagonal(lengths, 0)
 
     return lengths
+
+
+def disable_edges(distance_mx: DistanceMx, prohibition_p: float, symmetrically: bool = True, disabled_val: float = -1, symmetricize_from_triu: bool = True, inplace: bool = False) -> DistanceMx:
+    distance_mx = distance_mx if inplace else deepcopy(distance_mx)
+    
+    vx_n = distance_mx.shape[0]
+    forbidden = np.random.choice(
+        [True, False],
+        size=(vx_n, vx_n),
+        p=[prohibition_p, 1 - prohibition_p],
+    )
+
+    forbidden[np.diag(vx_n * [True])] = True
+    if symmetrically:
+        forbidden = symmetricize(forbidden, symmetricize_from_triu)
+
+    distance_mx[forbidden] = disabled_val
+
+    return distance_mx
 
 
 def wind_random(
@@ -134,3 +135,10 @@ def coords_grid(n: int) -> CoordsDF:
     x = list(it.chain.from_iterable(it.repeat(i, n) for i in range(n)))
     y = list(it.chain.from_iterable(it.repeat(coord_range, n)))
     return CoordsDF({"x": x, "y": y})
+
+
+def travel_times(distance_mx: DistanceMx, effective_speed: SpeedMx) -> TimeMx:
+    any_speed = (distance_mx > 0) & (effective_speed > 0)
+    travel_t = np.zeros_like(distance_mx)
+    travel_t[any_speed] = distance_mx[any_speed] / effective_speed[any_speed]
+    return travel_t

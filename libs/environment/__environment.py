@@ -1,14 +1,44 @@
-from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from collections import Iterable
-from typing import Any
+from typing import Any, Protocol
+import numpy as np
 
 
 Actor = Any
 Background = Any
+TimeMx = np.ndarray
+DistanceMx = np.ndarray
 
 
-@dataclass
-class Environment(ABC):
-    background: Background
-    actors: Iterable[Actor]
+class Environment(Protocol):
+    """
+    Groups information about environment.
+    """
+
+    cost: Any
+
+
+class EnvironmentWithActor(Environment):
+    actor: Any
+
+
+class EnvironmentStatic(Environment):
+    """
+    Contains info about environment that does not change in time.
+    """
+
+
+class EnvironmentDynamic(Environment):
+    """
+    Contains info about environment changing in time.
+    """
+
+
+class EnvironmentTSP(EnvironmentStatic):
+    ...
+
+
+class EnvironmentTSPSimple(EnvironmentTSP):
+    """
+    Cost is a distance between graph vertices.
+    """
+    cost: DistanceMx
