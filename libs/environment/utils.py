@@ -33,7 +33,7 @@ def coords_random(
     x = r_gen(min_x, max_x, size=n)
     y = r_gen(min_y, max_y, size=n)
 
-    coords = np.stack([x ,y], axis=1)
+    coords = np.stack([x, y], axis=1)
 
     return CoordsDF(coords, columns=["x", "y"])
 
@@ -44,7 +44,7 @@ def coords_distances(
     prohibition_p: float = 0,
     std_dev: Optional[float] = None,
     forbidden_val: float = -1,
-    symmetricize_from_triu: bool = True
+    symmetricize_from_triu: bool = True,
 ) -> DistanceMx:
     """
     Returns lengths beetween indices with given coords. If `symmetric`
