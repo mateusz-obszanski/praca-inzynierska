@@ -49,7 +49,9 @@ class CrossoverTSP(Crossover):
     Crossover with locus drawn from uniform distribution (excluding ends).
     """
 
-    def execute(self, chromosome1: ChromosomeTSP, chromosome2: ChromosomeTSP) -> tuple[ChromosomeTSP, ChromosomeTSP]:
+    def execute(
+        self, chromosome1: ChromosomeTSP, chromosome2: ChromosomeTSP
+    ) -> tuple[ChromosomeTSP, ChromosomeTSP]:
         """
         Crossover with locus drawn from uniform distribution (excluding ends).
         """
@@ -72,7 +74,9 @@ class CrossoverTSPKPoint(CrossoverKPoint):
     Crossover with k loci drawn from uniform distribution (excluding ends).
     """
 
-    def execute(self, chromosome1: ChromosomeTSP, chromosome2: ChromosomeTSP, k: int) -> tuple[ChromosomeTSP, ChromosomeTSP]:
+    def execute(
+        self, chromosome1: ChromosomeTSP, chromosome2: ChromosomeTSP, k: int
+    ) -> tuple[ChromosomeTSP, ChromosomeTSP]:
         """
         Crossover with k loci drawn from uniform distribution (excluding ends).
         """
@@ -84,8 +88,12 @@ class CrossoverTSPKPoint(CrossoverKPoint):
 
         loci = chunkify_randomly_indices(vxs1, k + 1)
 
-        vx1_chunks = [vxs1[i:j] for i, j in mit.windowed(mit.value_chain(0, loci, vx_n), 2)]
-        vx2_chunks = [vxs2[i:j] for i, j in mit.windowed(mit.value_chain(0, loci, vx_n), 2)]
+        vx1_chunks = [
+            vxs1[i:j] for i, j in mit.windowed(mit.value_chain(0, loci, vx_n), 2)
+        ]
+        vx2_chunks = [
+            vxs2[i:j] for i, j in mit.windowed(mit.value_chain(0, loci, vx_n), 2)
+        ]
 
         new_vxs1_chunks = (chunk for chunk in iterate_zigzag(vx1_chunks, vx2_chunks))
         new_vxs2_chunks = (chunk for chunk in iterate_zigzag(vx2_chunks, vx1_chunks))

@@ -98,7 +98,9 @@ class MutatorTSPShuffle(MutatorTSP):
         """
 
         # ! `chromosome.vertex_sequence` is not mutated, hence this is OK
-        chromosome = chromosome if inplace else ChromosomeTSP(chromosome.vertex_sequence)
+        chromosome = (
+            chromosome if inplace else ChromosomeTSP(chromosome.vertex_sequence)
+        )
         do_it = np.random.choice([True, False], p=[probability, 1 - probability])
 
         if not do_it:

@@ -10,7 +10,6 @@ T2 = TypeVar("T2")
 Matrix = Union[Sequence[Sequence[T]], np.ndarray]  # type: ignore
 
 
-
 def exhaust_iterator(i: Iterator) -> None:
     deque(i, maxlen=0)
 
@@ -24,10 +23,7 @@ def chunkify_randomly(a: list[T], n: int) -> list[list[T]]:
     ix_num = len(a)
     split_ixs = chunkify_randomly_indices(a, n)
 
-    chunks = [
-        a[i:j]
-        for i, j in mit.windowed(mit.value_chain(0, split_ixs, ix_num), 2)
-    ]
+    chunks = [a[i:j] for i, j in mit.windowed(mit.value_chain(0, split_ixs, ix_num), 2)]
 
     return chunks
 
@@ -48,9 +44,7 @@ def chunkify_randomly_indices(a: list, n: int) -> list[int]:
             break
 
         new_split_ix = np.random.choice(list(ix_pool))
-        ix_pool.difference_update(
-            [new_split_ix - 1, new_split_ix, new_split_ix + 1]
-        )
+        ix_pool.difference_update([new_split_ix - 1, new_split_ix, new_split_ix + 1])
         split_ix_buffer.append(new_split_ix)
 
     split_ixs = sorted(split_ix_buffer)
