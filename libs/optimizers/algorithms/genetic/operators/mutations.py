@@ -1,10 +1,13 @@
 from abc import ABC, abstractmethod
+from collections import deque
 from typing import TypeVar
 from copy import deepcopy
 import numpy as np
 import itertools as it
 import more_itertools as mit
 import random
+
+from libs.utils.iteration import chunkify_randomly
 
 from .base import GeneticOperator
 from ..chromosomes import Chromosome, ChromosomeTSP
@@ -81,51 +84,31 @@ class MutatorTSPShuffle(MutatorTSP):
     Shuffles genes in ranges determined by split indices drawn from poisson distribution.
     """
 
-    ChromosomeTSPT = TypeVar("ChromosomeTSPT", bound=ChromosomeTSP)
-
     def mutate(
         self,
-        chromosome: ChromosomeTSPT,
+        chromosome: ChromosomeTSP,
         inplace: bool = False,
         probability: float = 1,
         lam: float = 1,
-    ) -> ChromosomeTSPT:
+    ) -> ChromosomeTSP:
         """
         Shuffles genes in ranges determinde by indices drawn from exponential distribution.
         `probability` - probability of mutation occuring at all
         `lam` - lambda parameter for Poisson distribution.
         """
 
-        # FIXME optimization - this unnecesarily copies vertex_sequence (which is not modified later)
-        chromosome = super().mutate(chromosome, inplace)
+        # ! `chromosome.vertex_sequence` is not mutated, hence this is OK
+        chromosome = chromosome if inplace else ChromosomeTSP(chromosome.vertex_sequence)
         do_it = np.random.choice([True, False], p=[probability, 1 - probability])
 
         if not do_it:
             return chromosome
 
         vx_sequence = chromosome.vertex_sequence
-        ix_num = len(vx_sequence)
         split_ix_n = np.random.poisson(lam)
 
-        split_ix_set: set[int] = set()
-        ix_pool = set(range(ix_num)) - {0, ix_num - 1}
+        chunks = chunkify_randomly(vx_sequence, split_ix_n + 1)
 
-        for _ in range(split_ix_n):
-            if not ix_pool:
-                break
-
-            new_split_ix = np.random.choice(list(ix_pool))
-            ix_pool.difference_update(
-                [new_split_ix - 1, new_split_ix, new_split_ix + 1]
-            )
-            split_ix_set.add(new_split_ix)
-
-        split_ixs = sorted(split_ix_set)
-
-        chunks = [
-            vx_sequence[i:j]
-            for i, j in mit.windowed(mit.value_chain(0, split_ixs, ix_num), 2)
-        ]
         chunk_n = len(chunks)
         chunk_permutation_ixs = list(range(chunk_n))
 

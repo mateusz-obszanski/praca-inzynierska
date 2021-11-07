@@ -1,14 +1,72 @@
-from collections import Iterator, Sequence, deque
+from collections import Iterator, Sequence, deque, Iterable
 from typing import TypeVar, Union
 import numpy as np
+import more_itertools as mit
 
 
 T = TypeVar("T")
+T1 = TypeVar("T1")
+T2 = TypeVar("T2")
 Matrix = Union[Sequence[Sequence[T]], np.ndarray]  # type: ignore
+
 
 
 def exhaust_iterator(i: Iterator) -> None:
     deque(i, maxlen=0)
+
+
+def chunkify_randomly(a: list[T], n: int) -> list[list[T]]:
+    """
+    Tries to chunkify `a` into `n` nonempty chunks. If it is impossible,
+    returns smaller number of chunks.
+    """
+
+    ix_num = len(a)
+    split_ixs = chunkify_randomly_indices(a, n)
+
+    chunks = [
+        a[i:j]
+        for i, j in mit.windowed(mit.value_chain(0, split_ixs, ix_num), 2)
+    ]
+
+    return chunks
+
+
+def chunkify_randomly_indices(a: list, n: int) -> list[int]:
+    """
+    Returns indices for splitting `a` into `n` nonempty chunks. If it is impossible,
+    returns indices for chunkifying into smaller number of chunks.
+    """
+
+    ix_num = len(a)
+    split_ix_buffer: deque[int] = deque()
+    ix_pool = set(range(1, ix_num - 1))
+
+    # n - 1 split indices
+    for _ in range(n - 1):
+        if not ix_pool:
+            break
+
+        new_split_ix = np.random.choice(list(ix_pool))
+        ix_pool.difference_update(
+            [new_split_ix - 1, new_split_ix, new_split_ix + 1]
+        )
+        split_ix_buffer.append(new_split_ix)
+
+    split_ixs = sorted(split_ix_buffer)
+
+    return split_ixs
+
+
+def iterate_zigzag(a: Sequence[T1], b: Sequence[T2]) -> Iterator[Union[T1, T2]]:
+    """
+    a: [1, 2, 3, 4],
+    b: [5, 6, 7, 8],
+    result: [1, 6, 3, 8]
+    """
+
+    source_choice = [a, b]
+    return (source_choice[i % 2][i] for i in range(len(a)))
 
 
 def iterate_triangular_indices(
