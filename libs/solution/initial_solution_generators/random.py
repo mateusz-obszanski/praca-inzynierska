@@ -3,6 +3,7 @@ Random solution generators.
 """
 
 
+from abc import ABC
 import random
 
 
@@ -16,7 +17,7 @@ from . import (
 )
 
 
-class SolutionCreatorRandom(SolutionCreator):
+class SolutionCreatorRandom(SolutionCreator, ABC):
     ...
 
 

@@ -1,10 +1,11 @@
 from abc import ABC
 from dataclasses import dataclass
-from typing import Protocol, Any
+from typing import Any
 
 
-class SolutionRepresentation(Protocol):
+class SolutionRepresentation(ABC):
     """
+    Abstract base class.
     Contains `representation` field.
     The first entry in `representation` indicates initial point.
     """
@@ -13,5 +14,5 @@ class SolutionRepresentation(Protocol):
 
 
 @dataclass
-class SolutionRepresentationTSP:
+class SolutionRepresentationTSP(SolutionRepresentation):
     representation: list[int]

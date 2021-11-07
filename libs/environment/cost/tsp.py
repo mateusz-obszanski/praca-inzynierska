@@ -3,22 +3,25 @@ Cost functions for Travelling Salesman Problem.
 """
 
 
+from abc import ABC
 from typing import Generator
 from . import SolutionRepresentationTSP, EnvironmentTSPSimple
-from .base import CostFunctor, CostT
+from .base import CostCalculator, CostT
 
 
 # TODO for dynamic environments, implement generators/iterators that accumulate
 # costs and maybe yield special event flags/info
 
 
-class TSPCostFunctor(CostFunctor):
-    ...
+class TSPCostCalculator(CostCalculator, ABC):
+    """
+    Abstract base class.
+    """
 
 
-class TSPCostFuntorSimple(TSPCostFunctor):
+class TSPCostCalculatorSimple(TSPCostCalculator):
     @staticmethod
-    def calculate(
+    def _stepper(
         solution: SolutionRepresentationTSP, environment: EnvironmentTSPSimple
     ) -> Generator[CostT, None, None]:
         solution_representation = solution.representation

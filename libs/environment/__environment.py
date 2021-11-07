@@ -1,5 +1,6 @@
-from collections import Iterable
-from typing import Any, Protocol
+from abc import ABC
+from typing import Any
+from dataclasses import dataclass
 import numpy as np
 
 
@@ -9,34 +10,44 @@ TimeMx = np.ndarray
 DistanceMx = np.ndarray
 
 
-class Environment(Protocol):
+class Environment(ABC):
     """
+    Abstract base class.
     Groups information about environment.
     """
 
     cost: Any
 
 
-class EnvironmentWithActor(Environment):
+class EnvironmentWithActor(Environment, ABC):
+    """
+    Abstract base class.
+    """
+
     actor: Any
 
 
-class EnvironmentStatic(Environment):
+class EnvironmentStatic(Environment, ABC):
     """
+    Abstract base class.
     Contains info about environment that does not change in time.
     """
 
 
-class EnvironmentDynamic(Environment):
+class EnvironmentDynamic(Environment, ABC):
     """
+    Abstract base class.
     Contains info about environment changing in time.
     """
 
 
-class EnvironmentTSP(EnvironmentStatic):
-    ...
+class EnvironmentTSP(EnvironmentStatic, ABC):
+    """
+    Abstract base class.
+    """
 
 
+@dataclass
 class EnvironmentTSPSimple(EnvironmentTSP):
     """
     Cost is a distance between graph vertices.

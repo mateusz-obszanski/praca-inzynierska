@@ -1,10 +1,14 @@
-from collections.abc import Iterator, Sequence
+from collections import Iterator, Sequence, deque
 from typing import TypeVar, Union
 import numpy as np
 
 
 T = TypeVar("T")
 Matrix = Union[Sequence[Sequence[T]], np.ndarray]  # type: ignore
+
+
+def exhaust_iterator(i: Iterator) -> None:
+    deque(i, maxlen=0)
 
 
 def iterate_triangular_indices(

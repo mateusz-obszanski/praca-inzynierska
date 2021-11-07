@@ -3,6 +3,7 @@ Heuristic solution generators.
 """
 
 
+from abc import ABC
 import itertools as it
 from operator import itemgetter
 from ...utils.graph import graph_cycle_greedy_nn
@@ -17,7 +18,7 @@ from . import (
 )
 
 
-class SolutionCreatorHeuristic(SolutionCreator):
+class SolutionCreatorHeuristic(SolutionCreator, ABC):
     ...
 
 

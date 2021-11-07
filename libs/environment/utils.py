@@ -60,7 +60,7 @@ def coords_distances(
         lengths += noise
 
     if symmetric:
-        lengths = symmetricize(lengths)
+        lengths = symmetricize(lengths, symmetricize_from_triu)
 
     np.fill_diagonal(lengths, 0)
 
@@ -99,6 +99,7 @@ def wind_random(
     mean: float = 0,
     std_dev: float = 1,
     max_velocity: float = 1,
+    antisymmetricize_from_triu: bool = True,
 ) -> WindMx:
     """
     Generates wind along graph's edges. `max_velocity` is ignored for normal distribution.
@@ -121,7 +122,7 @@ def wind_random(
     except KeyError:
         raise NotImplementedError("distribution", distribution.name)
 
-    wind_mx = antisymmetricize(wind_generator())  # type: ignore
+    wind_mx = antisymmetricize(wind_generator(), antisymmetricize_from_triu)  # type: ignore
     np.fill_diagonal(wind_mx, 0)
     return wind_mx
 
