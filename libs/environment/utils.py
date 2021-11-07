@@ -56,7 +56,7 @@ def coords_distances(
     lengths = sci_distance_mx(coords_np, coords_np)
 
     if std_dev:
-        noise = np.abs(np.random.normal(scale=std_dev, size=2*[coords_np.shape[0]]))
+        noise = np.abs(np.random.normal(scale=std_dev, size=2 * [coords_np.shape[0]]))
         lengths += noise
 
     if symmetric:
@@ -67,9 +67,16 @@ def coords_distances(
     return lengths
 
 
-def disable_edges(distance_mx: DistanceMx, prohibition_p: float, symmetrically: bool = True, disabled_val: float = -1, symmetricize_from_triu: bool = True, inplace: bool = False) -> DistanceMx:
+def disable_edges(
+    distance_mx: DistanceMx,
+    prohibition_p: float,
+    symmetrically: bool = True,
+    disabled_val: float = -1,
+    symmetricize_from_triu: bool = True,
+    inplace: bool = False,
+) -> DistanceMx:
     distance_mx = distance_mx if inplace else deepcopy(distance_mx)
-    
+
     vx_n = distance_mx.shape[0]
     forbidden = np.random.choice(
         [True, False],

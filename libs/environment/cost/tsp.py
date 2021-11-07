@@ -18,7 +18,9 @@ class TSPCostFunctor(CostFunctor):
 
 class TSPCostFuntorSimple(TSPCostFunctor):
     @staticmethod
-    def calculate(solution: SolutionRepresentationTSP, environment: EnvironmentTSPSimple) -> Generator[CostT, None, None]:
+    def calculate(
+        solution: SolutionRepresentationTSP, environment: EnvironmentTSPSimple
+    ) -> Generator[CostT, None, None]:
         solution_representation = solution.representation
         distance_mx = environment.cost
 

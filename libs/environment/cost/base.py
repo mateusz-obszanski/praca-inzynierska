@@ -9,5 +9,7 @@ CostT = float
 
 class CostFunctor(Protocol):
     @staticmethod
-    def calculate(solution: SolutionRepresentation, environment: Environment) -> Generator[CostT, Any, Any]:
+    def calculate(
+        solution: SolutionRepresentation, environment: Environment
+    ) -> Generator[CostT, Any, Any]:
         ...

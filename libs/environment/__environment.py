@@ -41,4 +41,5 @@ class EnvironmentTSPSimple(EnvironmentTSP):
     """
     Cost is a distance between graph vertices.
     """
+
     cost: DistanceMx
