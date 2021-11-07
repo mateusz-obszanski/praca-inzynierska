@@ -9,5 +9,5 @@ class Chromosome(ABC):
 
 
 @dataclass
-class ChromosomeTSP(Chromosome):
+class ChromosomeHomogenousVector(Chromosome):
     vertex_sequence: list[int]

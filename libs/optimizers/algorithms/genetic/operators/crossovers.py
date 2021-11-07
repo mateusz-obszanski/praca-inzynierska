@@ -2,12 +2,13 @@ from abc import ABC, abstractmethod
 import numpy as np
 import itertools as it
 import more_itertools as mit
+from copy import copy
 
-from libs.utils.iteration import chunkify_randomly_indices, iterate_zigzag
 
 from .base import GeneticOperator
-from ..chromosomes import Chromosome, ChromosomeTSP
+from ..chromosomes import Chromosome, ChromosomeHomogenousVector
 from .....types import PositiveInt
+from .....utils.iteration import chunkify_randomly_indices, iterate_zigzag
 
 
 class Crossover(GeneticOperator, ABC):
@@ -44,14 +45,16 @@ class CrossoverKPoint(Crossover, ABC):
         ...
 
 
-class CrossoverTSP(Crossover):
+class CrossoverHomogenousVector(Crossover):
     """
     Crossover with locus drawn from uniform distribution (excluding ends).
     """
 
     def execute(
-        self, chromosome1: ChromosomeTSP, chromosome2: ChromosomeTSP
-    ) -> tuple[ChromosomeTSP, ChromosomeTSP]:
+        self,
+        chromosome1: ChromosomeHomogenousVector,
+        chromosome2: ChromosomeHomogenousVector,
+    ) -> tuple[ChromosomeHomogenousVector, ChromosomeHomogenousVector]:
         """
         Crossover with locus drawn from uniform distribution (excluding ends).
         """
@@ -63,20 +66,25 @@ class CrossoverTSP(Crossover):
 
         locus = np.random.choice(range(1, vx_n - 1))
 
-        new_vxs1 = vxs1[:locus] + vxs1[locus:]
-        new_vxs2 = vxs2[:locus] + vxs2[locus:]
+        new_vxs1 = vxs1[locus:] + vxs2[:locus]
+        new_vxs2 = vxs2[locus:] + vxs1[:locus]
 
-        return ChromosomeTSP(new_vxs1), ChromosomeTSP(new_vxs2)
+        return ChromosomeHomogenousVector(new_vxs1), ChromosomeHomogenousVector(
+            new_vxs2
+        )
 
 
-class CrossoverTSPKPoint(CrossoverKPoint):
+class CrossoverHomogenousVectorKPoint(CrossoverKPoint):
     """
     Crossover with k loci drawn from uniform distribution (excluding ends).
     """
 
     def execute(
-        self, chromosome1: ChromosomeTSP, chromosome2: ChromosomeTSP, k: int
-    ) -> tuple[ChromosomeTSP, ChromosomeTSP]:
+        self,
+        chromosome1: ChromosomeHomogenousVector,
+        chromosome2: ChromosomeHomogenousVector,
+        k: int,
+    ) -> tuple[ChromosomeHomogenousVector, ChromosomeHomogenousVector]:
         """
         Crossover with k loci drawn from uniform distribution (excluding ends).
         """
@@ -101,4 +109,6 @@ class CrossoverTSPKPoint(CrossoverKPoint):
         new_vxs1 = list(it.chain.from_iterable(new_vxs1_chunks))
         new_vxs2 = list(it.chain.from_iterable(new_vxs2_chunks))
 
-        return ChromosomeTSP(new_vxs1), ChromosomeTSP(new_vxs2)
+        return ChromosomeHomogenousVector(new_vxs1), ChromosomeHomogenousVector(
+            new_vxs2
+        )

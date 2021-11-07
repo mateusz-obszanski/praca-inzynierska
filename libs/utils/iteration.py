@@ -1,4 +1,4 @@
-from collections import Iterator, Sequence, deque, Iterable
+from collections import Iterator, Sequence, deque
 from typing import TypeVar, Union
 import numpy as np
 import more_itertools as mit

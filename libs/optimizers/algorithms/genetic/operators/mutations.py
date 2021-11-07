@@ -1,19 +1,16 @@
 from abc import ABC, abstractmethod
-from collections import deque
 from typing import TypeVar
 from copy import deepcopy
 import numpy as np
 import itertools as it
-import more_itertools as mit
-import random
 
 from libs.utils.iteration import chunkify_randomly
 
 from .base import GeneticOperator
-from ..chromosomes import Chromosome, ChromosomeTSP
+from ..chromosomes import Chromosome, ChromosomeHomogenousVector
 
 
-class Mutator(GeneticOperator):
+class Mutator(GeneticOperator, ABC):
     """
     Abstract base class.
     """
@@ -37,26 +34,17 @@ class Mutator(GeneticOperator):
         return self.mutate(chromosome, inplace)
 
 
-class MutatorSwap(Mutator, ABC):
-    """
-    Abstract base class. Swaps to single genes.
-    """
-
-
-class MutatorTSP(Mutator, ABC):
-    """
-    Abstract base class.
-    """
-
-
-class MutatorTSPSwap(MutatorTSP):
+class MutatorHomogenousVectorSwap(Mutator):
     """
     Swaps genes k times, where k is drawn from Poisson distribution.
     """
 
     def mutate(
-        self, chromosome: ChromosomeTSP, inplace: bool = False, lam: float = 1
-    ) -> ChromosomeTSP:
+        self,
+        chromosome: ChromosomeHomogenousVector,
+        inplace: bool = False,
+        lam: float = 1,
+    ) -> ChromosomeHomogenousVector:
         """
         Swaps genes k times, where k is drawn from Poisson distribution.
         `lam` - lambda parameter for Poisson distribution.
@@ -79,18 +67,18 @@ class MutatorTSPSwap(MutatorTSP):
         return chromosome
 
 
-class MutatorTSPShuffle(MutatorTSP):
+class MutatorHomogenousVectorShuffle(Mutator):
     """
     Shuffles genes in ranges determined by split indices drawn from poisson distribution.
     """
 
     def mutate(
         self,
-        chromosome: ChromosomeTSP,
+        chromosome: ChromosomeHomogenousVector,
         inplace: bool = False,
         probability: float = 1,
         lam: float = 1,
-    ) -> ChromosomeTSP:
+    ) -> ChromosomeHomogenousVector:
         """
         Shuffles genes in ranges determinde by indices drawn from exponential distribution.
         `probability` - probability of mutation occuring at all
@@ -99,7 +87,9 @@ class MutatorTSPShuffle(MutatorTSP):
 
         # ! `chromosome.vertex_sequence` is not mutated, hence this is OK
         chromosome = (
-            chromosome if inplace else ChromosomeTSP(chromosome.vertex_sequence)
+            chromosome
+            if inplace
+            else ChromosomeHomogenousVector(chromosome.vertex_sequence)
         )
         do_it = np.random.choice([True, False], p=[probability, 1 - probability])
 
