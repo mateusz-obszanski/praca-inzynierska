@@ -18,7 +18,9 @@ from . import (
 
 
 class SolutionCreatorRandom(SolutionCreator, ABC):
-    ...
+    """
+    Abstract base class.
+    """
 
 
 class SolutionCreatorTSPSimpleRandom(SolutionCreatorRandom, SolutionCreatorTSPSimple):

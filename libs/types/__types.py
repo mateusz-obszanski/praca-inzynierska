@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 
 Time = float
+PositiveInt = int
 
 
 VehicleDecisions = type(NotImplemented)

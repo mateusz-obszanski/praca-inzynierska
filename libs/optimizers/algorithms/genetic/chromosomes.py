@@ -1,4 +1,13 @@
-from typing import NewType
-from numpy import ndarray
+from abc import ABC
+from dataclasses import dataclass
 
-Chromosome = NewType("Chromosome", ndarray)
+
+class Chromosome(ABC):
+    """
+    Abstract base class.
+    """
+
+
+@dataclass
+class ChromosomeTSP(Chromosome):
+    vertex_sequence: list[int]

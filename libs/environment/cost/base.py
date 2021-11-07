@@ -17,6 +17,7 @@ class CostCalculator(ABC):
     """
 
     def __init__(self) -> None:
+        super().__init__()
         self.initial_cost: CostT
         self.total_cost: CostT
         self.step_cost: deque[CostT] = deque()

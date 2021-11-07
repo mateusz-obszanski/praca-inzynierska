@@ -19,7 +19,9 @@ from . import (
 
 
 class SolutionCreatorHeuristic(SolutionCreator, ABC):
-    ...
+    """
+    Abstract base class.
+    """
 
 
 class SolutionCreatorTSPSimpleHeuristicNN(

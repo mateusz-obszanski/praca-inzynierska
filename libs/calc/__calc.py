@@ -4,6 +4,10 @@ from copy import copy
 
 
 class StateTransitionExecutor(ABC):
+    """
+    Abstract base class.
+    """
+
     @abstractmethod
     def state_transition(self, environment: EnvironmentState) -> EnvironmentState:
         ...

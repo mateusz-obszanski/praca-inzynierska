@@ -19,8 +19,6 @@ class SolutionCreatorTSP(SolutionCreator, ABC):
     Abstract base class.
     """
 
-    ...
-
 
 class SolutionCreatorTSPSimple(ABC):
     """

@@ -1,1 +1,1 @@
-from .algorithms import SolutionRepresentation as SolutionRepresentation
+from ..solution.representation import SolutionRepresentation as SolutionRepresentation
