@@ -1,4 +1,4 @@
-from collections import Iterator, Sequence, deque
+from collections import Iterator, Sequence, deque, Iterable, Hashable
 from typing import TypeVar, Union
 import numpy as np
 import more_itertools as mit
@@ -7,6 +7,7 @@ import more_itertools as mit
 T = TypeVar("T")
 T1 = TypeVar("T1")
 T2 = TypeVar("T2")
+HashableT = TypeVar("HashableT", bound=Hashable)
 Matrix = Union[Sequence[Sequence[T]], np.ndarray]  # type: ignore
 
 
@@ -61,6 +62,22 @@ def iterate_zigzag(a: Sequence[T1], b: Sequence[T2]) -> Iterator[Union[T1, T2]]:
 
     source_choice = [a, b]
     return (source_choice[i % 2][i] for i in range(len(a)))
+
+
+def double_indices(a: Iterable[HashableT]) -> dict[HashableT, deque[int]]:
+    """
+    Returns mapping to indices of doubles of an element in `a`.
+    """
+
+    double_indices: dict[HashableT, deque[int]] = {}
+
+    for i, elem in enumerate(a):
+        if elem not in double_indices:
+            double_indices[elem] = deque()
+        else:
+            double_indices[elem].append(i)
+
+    return double_indices
 
 
 def iterate_triangular_indices(
@@ -125,5 +142,11 @@ def iterate_triangular_indices(
 def iterate_triangular(
     m: Matrix, upper: bool = True, with_diagonal: bool = True
 ) -> Iterator:
+    raise DeprecationWarning(
+        (
+            "deprecated in favor of numpy.triu_indices, numpy_tril_indices, "
+            "numpy.triu_indices_from and numpy.tril_indices_from"
+        )
+    )
 
     return (m[i, j] for i, j in iterate_triangular_indices(m, upper, with_diagonal))  # type: ignore
