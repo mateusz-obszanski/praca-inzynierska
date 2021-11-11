@@ -7,7 +7,11 @@ class Chromosome(ABC):
     Abstract base class.
     """
 
+    def __init__(self, sequence) -> None:
+        super().__init__()
+        self.sequence = sequence
+
 
 @dataclass
 class ChromosomeHomogenousVector(Chromosome):
-    vertex_sequence: list[int]
+    sequence: list[int]

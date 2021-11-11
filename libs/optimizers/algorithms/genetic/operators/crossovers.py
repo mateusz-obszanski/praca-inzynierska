@@ -1,17 +1,18 @@
 from abc import ABC, abstractmethod
+from typing import TypeVar
 import numpy as np
 import itertools as it
 import more_itertools as mit
-from copy import copy
 
-
-from .base import GeneticOperator
 from ..chromosomes import Chromosome, ChromosomeHomogenousVector
 from .....types import PositiveInt
 from .....utils.iteration import chunkify_randomly_indices, iterate_zigzag
 
 
-class Crossover(GeneticOperator, ABC):
+T = TypeVar("T")
+
+
+class Crossover(ABC):
     """
     Abstract base class.
     """
@@ -59,8 +60,8 @@ class CrossoverHomogenousVector(Crossover):
         Crossover with locus drawn from uniform distribution (excluding ends).
         """
 
-        vxs1 = chromosome1.vertex_sequence
-        vxs2 = chromosome2.vertex_sequence
+        vxs1 = chromosome1.sequence
+        vxs2 = chromosome2.sequence
 
         vx_n = len(vxs1)
 
@@ -89,26 +90,74 @@ class CrossoverHomogenousVectorKPoint(CrossoverKPoint):
         Crossover with k loci drawn from uniform distribution (excluding ends).
         """
 
-        vxs1 = chromosome1.vertex_sequence
-        vxs2 = chromosome2.vertex_sequence
+        vxs1 = chromosome1.sequence
+        vxs2 = chromosome2.sequence
 
-        vx_n = len(vxs1)
-
-        loci = chunkify_randomly_indices(vxs1, k + 1)
-
-        vx1_chunks = [
-            vxs1[i:j] for i, j in mit.windowed(mit.value_chain(0, loci, vx_n), 2)
-        ]
-        vx2_chunks = [
-            vxs2[i:j] for i, j in mit.windowed(mit.value_chain(0, loci, vx_n), 2)
-        ]
-
-        new_vxs1_chunks = (chunk for chunk in iterate_zigzag(vx1_chunks, vx2_chunks))
-        new_vxs2_chunks = (chunk for chunk in iterate_zigzag(vx2_chunks, vx1_chunks))
-
-        new_vxs1 = list(it.chain.from_iterable(new_vxs1_chunks))
-        new_vxs2 = list(it.chain.from_iterable(new_vxs2_chunks))
+        new_vxs1, new_vxs2 = __crossover_k_locus(vxs1, vxs2, k)
 
         return ChromosomeHomogenousVector(new_vxs1), ChromosomeHomogenousVector(
             new_vxs2
         )
+
+
+class CrossoverHomogenousVactorKPointPoisson(CrossoverKPoint):
+    """
+    Crossover with varying locus number drawn from Poisson distribution.
+    """
+
+    def __init__(self, lam: float) -> None:
+        """
+        Crossover with `k` loci (`k >= 1`) where `k - 1` is drawn from Poisson distribution.
+
+        :param lam float: lambda parameter for Poisson distribution
+        """
+
+        super().__init__()
+        self.lam = lam
+
+    def execute(
+        self,
+        chromosome1: ChromosomeHomogenousVector,
+        chromosome2: ChromosomeHomogenousVector,
+    ) -> tuple[ChromosomeHomogenousVector, ChromosomeHomogenousVector]:
+        k = 1 + np.random.poisson(self.lam)
+
+        vxs1 = chromosome1.sequence
+        vxs2 = chromosome2.sequence
+
+        new_vxs1, new_vxs2 = __crossover_k_locus(vxs1, vxs2, k)
+
+        return ChromosomeHomogenousVector(new_vxs1), ChromosomeHomogenousVector(
+            new_vxs2
+        )
+
+
+def __crossover_k_locus(
+    parent1: list[T], parent2: list[T], k: int
+) -> tuple[list[T], list[T]]:
+    """
+    Assumes that `parent1` and `parent2` have the same length.
+    """
+
+    parent_len = len(parent1)
+
+    loci = chunkify_randomly_indices(parent1, k + 1)
+
+    parent1_chunks = [
+        parent1[i:j] for i, j in mit.windowed(mit.value_chain(0, loci, parent_len), 2)
+    ]
+    parent2_chunks = [
+        parent2[i:j] for i, j in mit.windowed(mit.value_chain(0, loci, parent_len), 2)
+    ]
+
+    new_parent1_chunks = (
+        chunk for chunk in iterate_zigzag(parent1_chunks, parent2_chunks)
+    )
+    new_parent2_chunks = (
+        chunk for chunk in iterate_zigzag(parent2_chunks, parent1_chunks)
+    )
+
+    new_parent1 = list(it.chain.from_iterable(new_parent1_chunks))
+    new_parent2 = list(it.chain.from_iterable(new_parent2_chunks))
+
+    return new_parent1, new_parent2

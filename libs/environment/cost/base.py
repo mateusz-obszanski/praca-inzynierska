@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import Callable, Generator, Any, Optional
+from typing import Callable, Generator, Any
 from functools import wraps
 from collections import deque
 
-from . import SolutionRepresentation
-from . import Environment
+from ...environment import Environment
+from ...solution.representation import SolutionRepresentation
 from ...utils.iteration import exhaust_iterator
 
 

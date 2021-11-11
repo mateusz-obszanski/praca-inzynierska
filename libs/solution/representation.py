@@ -10,7 +10,9 @@ class SolutionRepresentation(ABC):
     The first entry in `representation` indicates initial point.
     """
 
-    representation: Any
+    def __init__(self, representation) -> None:
+        super().__init__()
+        self.representation = representation
 
 
 @dataclass

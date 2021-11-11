@@ -1,6 +1,6 @@
-from collections import Iterable
+from collections import Sequence
 
 from ..chromosomes import Chromosome
 
 
-Population = Iterable[Chromosome]
+Population = list[Chromosome]

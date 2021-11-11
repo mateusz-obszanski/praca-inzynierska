@@ -6,32 +6,33 @@ import itertools as it
 
 from libs.utils.iteration import chunkify_randomly
 
-from .base import GeneticOperator
 from ..chromosomes import Chromosome, ChromosomeHomogenousVector
 
 
-class Mutator(GeneticOperator, ABC):
+DidMutate = bool
+
+
+class Mutator(ABC):
     """
     Abstract base class.
     """
 
+    def __init__(self, probability: float) -> None:
+        super().__init__()
+        self.probability = probability
+
     ChromosomeT = TypeVar("ChromosomeT", bound=Chromosome)
 
     @abstractmethod
-    def mutate(self, chromosome: ChromosomeT, inplace: bool = False) -> ChromosomeT:
+    def mutate(
+        self, chromosome: ChromosomeT, inplace: bool = False
+    ) -> tuple[ChromosomeT, DidMutate]:
         """
-        Alias for `self.execute`.
+        Abstract method.
         """
 
         chromosome = chromosome if inplace else deepcopy(chromosome)
-        return chromosome
-
-    def execute(self, chromosome: ChromosomeT, inplace: bool = False) -> ChromosomeT:
-        """
-        For compatibility with `GeneticOperator` ABC.
-        """
-
-        return self.mutate(chromosome, inplace)
+        return chromosome, False
 
 
 class MutatorHomogenousVectorSwap(Mutator):
@@ -39,65 +40,94 @@ class MutatorHomogenousVectorSwap(Mutator):
     Swaps genes k times, where k is drawn from Poisson distribution.
     """
 
+    ChromosomeHomogenousVectorT = TypeVar(
+        "ChromosomeHomogenousVectorT", bound=ChromosomeHomogenousVector
+    )
+
+    def __init__(self, probability: float, lam: float) -> None:
+        """
+        :param lam float: lambda parameter for random k choice by Poisson distribution
+        """
+
+        super().__init__(probability)
+        self.lam = lam
+
     def mutate(
         self,
-        chromosome: ChromosomeHomogenousVector,
+        chromosome: ChromosomeHomogenousVectorT,
         inplace: bool = False,
-        lam: float = 1,
-    ) -> ChromosomeHomogenousVector:
+    ) -> tuple[ChromosomeHomogenousVectorT, DidMutate]:
         """
-        Swaps genes k times, where k is drawn from Poisson distribution.
-        `lam` - lambda parameter for Poisson distribution.
+        Swaps genes 1 + k times, where k is drawn from Poisson distribution.
         """
-        chromosome = super().mutate(chromosome, inplace)
 
-        vx_sequence = chromosome.vertex_sequence
+        chromosome, _ = super().mutate(chromosome, inplace)
 
-        k = np.random.poisson(lam)
+        probability = self.probability
+
+        do_it = np.random.choice([True, False], p=[probability, 1 - probability])
+
+        if not do_it:
+            return chromosome, False
+
+        vx_sequence = chromosome.sequence
+
+        k = np.random.poisson(self.lam)
 
         ixs = list(range(len(vx_sequence)))
         ix_set = set(ixs)
 
-        indices_to_swap = np.random.choice(ixs, size=k)
+        indices_to_swap = np.random.choice(ixs, size=1 + k)
         second_indices = [np.random.choice(list(ix_set - {i})) for i in indices_to_swap]
 
         for i, j in zip(indices_to_swap, second_indices):
             vx_sequence[i], vx_sequence[j] = vx_sequence[j], vx_sequence[i]
 
-        return chromosome
+        return chromosome, True
 
 
 class MutatorHomogenousVectorShuffle(Mutator):
     """
-    Shuffles genes in ranges determined by split indices drawn from poisson distribution.
+    Shuffles genes in ranges determined by split indices drawn from Poisson distribution.
     """
+
+    ChromosomeHomogenousVectorT = TypeVar(
+        "ChromosomeHomogenousVectorT", bound=ChromosomeHomogenousVector
+    )
+
+    def __init__(self, probability: float, lam: float) -> None:
+        """
+        :param probability float: probability of gene mutation
+        "param lam float: lambda parameter for shuffle indices choice by Poisson
+            distribution
+        """
+
+        super().__init__(probability)
+        self.lam = lam
 
     def mutate(
         self,
-        chromosome: ChromosomeHomogenousVector,
+        chromosome: ChromosomeHomogenousVectorT,
         inplace: bool = False,
-        probability: float = 1,
-        lam: float = 1,
-    ) -> ChromosomeHomogenousVector:
+    ) -> tuple[ChromosomeHomogenousVectorT, DidMutate]:
         """
-        Shuffles genes in ranges determinde by indices drawn from exponential distribution.
+        Shuffles genes in ranges determinde by indices drawn from Poisson distribution.
         `probability` - probability of mutation occuring at all
         `lam` - lambda parameter for Poisson distribution.
         """
 
+        probability = self.probability
+
         # ! `chromosome.vertex_sequence` is not mutated, hence this is OK
-        chromosome = (
-            chromosome
-            if inplace
-            else ChromosomeHomogenousVector(chromosome.vertex_sequence)
-        )
+        chromosome = chromosome if inplace else type(chromosome)(chromosome.sequence)
+
         do_it = np.random.choice([True, False], p=[probability, 1 - probability])
 
         if not do_it:
-            return chromosome
+            return chromosome, False
 
-        vx_sequence = chromosome.vertex_sequence
-        split_ix_n = np.random.poisson(lam)
+        vx_sequence = chromosome.sequence
+        split_ix_n = np.random.poisson(self.lam)
 
         chunks = chunkify_randomly(vx_sequence, split_ix_n + 1)
 
@@ -114,6 +144,7 @@ class MutatorHomogenousVectorShuffle(Mutator):
         shuffled_vx_sequence = list(
             it.chain.from_iterable(chunks[i] for i in chunk_permutation_ixs)
         )
-        chromosome.vertex_sequence = shuffled_vx_sequence
 
-        return chromosome
+        chromosome.sequence = shuffled_vx_sequence
+
+        return chromosome, True
