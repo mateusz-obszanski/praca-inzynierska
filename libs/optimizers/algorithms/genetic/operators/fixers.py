@@ -54,6 +54,10 @@ class ChromosomeFixer(ABC):
             else (deepcopy(chromosome), FixResult(FixStatus.SUCCESS))
         )
 
+    @abstractmethod
+    def number_of_errors(self, chromosome: Chromosome, environment: Environment) -> int:
+        ...
+
 
 class ChromosomeFixerTSPSimple(ChromosomeFixer):
     def fix(
@@ -82,7 +86,7 @@ class ChromosomeFixerTSPSimple(ChromosomeFixer):
         vx_num = cost_mx.shape[0]
         doubles = set(doubles_mapping.keys())
 
-        transitions_possible = self.__valid_transitions(cost_mx, vx_num)
+        transitions_possible = self.__valid_transitions(seq, cost_mx)
 
         if not doubles and all(transitions_possible):
             return chromosome, FixResult(FixStatus.SUCCESS)
@@ -116,7 +120,7 @@ class ChromosomeFixerTSPSimple(ChromosomeFixer):
         if not leftout_vxs:
             no_of_errors = sum(
                 not valid_transition
-                for valid_transition in self.__valid_transitions(cost_mx, vx_num)
+                for valid_transition in self.__valid_transitions(seq, cost_mx)
             )
 
             if no_of_errors == 0:
@@ -148,7 +152,7 @@ class ChromosomeFixerTSPSimple(ChromosomeFixer):
                 # doubles mapping has not been mutated so it is used
                 no_of_errors = len(doubles_mapping) + sum(
                     not valid_transition
-                    for valid_transition in self.__valid_transitions(cost_mx, vx_num)
+                    for valid_transition in self.__valid_transitions(seq, cost_mx)
                 )
                 return chromosome, FixResult(FixStatus.FAILURE, no_of_errors)
 
@@ -157,8 +161,19 @@ class ChromosomeFixerTSPSimple(ChromosomeFixer):
 
         return chromosome, FixResult(FixStatus.SUCCESS)
 
-    def __valid_transitions(self, cost_mx: DistanceMx, vx_num: int):
+    def __valid_transitions(self, seq: list[int], cost_mx: DistanceMx):
         return (
             cost > 0 and not math.isinf(cost)
-            for cost in (cost_mx[i, j] for i, j in mit.windowed(range(vx_num), n=2))
+            for cost in (cost_mx[i, j] for i, j in mit.windowed(seq, n=2))
+        )
+
+    def number_of_errors(
+        self, chromosome: ChromosomeHomogenousVector, environment: EnvironmentTSPSimple
+    ) -> int:
+        seq = chromosome.sequence
+        return (
+            len(double_indices(seq))
+            + len(seq)
+            - 1
+            - sum(self.__valid_transitions(seq, environment.cost))
         )

@@ -1,10 +1,12 @@
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
+from typing import Union, overload, Literal
 import more_itertools as mit
 import numpy.random as np_rnd
 
 from . import Population
 from ..chromosomes import Chromosome
+from ..operators.fixers import FixResult
 from .....solution.representation import SolutionRepresentation
 from .....environment import Environment
 from .....environment.cost import CostCalculator, CostT
@@ -25,7 +27,8 @@ class ParentSelector(ABC):
         population: Population,
         environment: Environment,
         cost_calculator: CostCalculator,
-    ) -> tuple[list[PairedChromosomes], list[CostT]]:
+        prev_fix_results: list[FixResult],
+    ) -> tuple[list[PairedChromosomes], list[CostT], list[FixResult]]:
         """
         Assumes that population size is even.
         """
@@ -42,7 +45,8 @@ class ParentSelectorElitist(ParentSelector):
         population: Population,
         environment: Environment,
         cost_calculator: CostCalculator,
-    ) -> tuple[list[PairedChromosomes], list[CostT]]:
+        prev_fix_results: list[FixResult],
+    ) -> tuple[list[PairedChromosomes], list[CostT], list[FixResult]]:
         """
         Sorts population by cost and groups into pairs (best, second best), ...
         Assumes that population size is even and costs positive.
@@ -51,11 +55,15 @@ class ParentSelectorElitist(ParentSelector):
             of paired parents and list of input population costs.
         """
 
-        sorted_population, costs = sort_population(
-            population, environment, cost_calculator
+        sorted_population, costs, fix_results_ixs = sort_population(
+            population, environment, cost_calculator, return_indices=True
         )
 
-        return list(mit.windowed(sorted_population, n=2, step=2)), costs  # type: ignore
+        return (  # type: ignore
+            list(mit.windowed(sorted_population, n=2, step=2)),
+            costs,
+            [prev_fix_results[ix] for ix in fix_results_ixs],
+        )
 
 
 class ParentSelectorElitistRandomized:
@@ -70,7 +78,8 @@ class ParentSelectorElitistRandomized:
         population: Population,
         environment: Environment,
         cost_calculator: CostCalculator,
-    ) -> tuple[list[PairedChromosomes], list[CostT]]:
+        prev_fix_results: list[FixResult],
+    ) -> tuple[list[PairedChromosomes], list[CostT], list[FixResult]]:
         """
         Sorts popultaion by cost and groups into pairs. The best chromosomes have
         the highest probability of being chosen first, thus being paired with other
@@ -96,14 +105,46 @@ class ParentSelectorElitistRandomized:
             for i, j in mit.windowed(ixs_by_probability, n=2, step=2)
         ]
 
-        return paired_parents, costs
+        return (
+            paired_parents,
+            costs,
+            [prev_fix_results[ix] for ix in ixs_by_probability],
+        )
+
+
+@overload
+def sort_population(
+    population: Iterable[Chromosome],
+    environment: Environment,
+    cost_calculator: CostCalculator,
+    return_indices: Literal[False],
+) -> tuple[list[Chromosome], list[CostT]]:
+    """
+    Sorts population by cost in descending order and returns calculated costs.
+    """
+
+
+@overload
+def sort_population(
+    population: Iterable[Chromosome],
+    environment: Environment,
+    cost_calculator: CostCalculator,
+    return_indices: Literal[True],
+) -> tuple[list[Chromosome], list[CostT], list[int]]:
+    """
+    Sorts population by cost in descending order and returns calculated costs.
+    """
 
 
 def sort_population(
     population: Iterable[Chromosome],
     environment: Environment,
     cost_calculator: CostCalculator,
-) -> tuple[list[Chromosome], list[CostT]]:
+    return_indices: bool = False,
+) -> Union[
+    tuple[list[Chromosome], list[CostT]],
+    tuple[list[Chromosome], list[CostT], list[int]],
+]:
     """
     Sorts population by cost in descending order and returns calculated costs.
     """
@@ -115,6 +156,14 @@ def sort_population(
         for chromosome in population
     ]
 
+    if return_indices:
+        sorted_costs, sorted_population, sorted_ixs = mit.unzip(
+            sorted(
+                zip(costs, population, range(len(costs))), key=lambda x: (x[0], x[1])
+            )
+        )
+        return list(sorted_costs), list(sorted_population), list(sorted_ixs)  # type: ignore
+
     sorted_costs, sorted_population = mit.unzip(sorted(zip(costs, population)))
 
-    return sorted_population, sorted_costs  # type: ignore
+    return list(sorted_population), list(sorted_costs)  # type: ignore
