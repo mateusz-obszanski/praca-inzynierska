@@ -17,4 +17,5 @@ class Genetic(Algorithm, ABC):
 
 
 class GeneticTSP(Genetic):
-    def step(self)
+    def step(self):
+        ...

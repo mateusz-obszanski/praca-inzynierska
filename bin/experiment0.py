@@ -1,48 +1,56 @@
+import sys
+sys.path.append(".")
+sys.path.append("..")
+
 from enum import Enum, auto
 from time import time
+from datetime import datetime
+from pathlib import Path
 from dataclasses import dataclass
 from copy import deepcopy
 import math
+import pickle
 
 import numpy as np
 import pandas as pd
 import more_itertools as mit
+import matplotlib.pyplot as plt
 import seaborn as sns
 
-from ..libs.environment import EnvironmentTSPSimple
-from ..libs.environment.cost.tsp import CostT, TSPCostCalculatorSimple
-from ..libs.optimizers.algorithms.genetic.chromosomes import (
+from libs.environment import EnvironmentTSPSimple
+from libs.environment.cost.tsp import CostT, TSPCostCalculatorSimple
+from libs.optimizers.algorithms.genetic.chromosomes import (
     Chromosome,
     ChromosomeHomogenousVector,
 )
-from ..libs.optimizers.algorithms.genetic.population import Population
-from ..libs.solution.initial_solution_generators.heuristic import (
+from libs.optimizers.algorithms.genetic.population import Population
+from libs.solution.initial_solution_generators.heuristic import (
     SolutionCreatorTSPSimpleHeuristicNN,
 )
-from ..libs.solution.initial_solution_generators.random import (
+from libs.solution.initial_solution_generators.random import (
     SolutionCreatorTSPSimpleRandom,
 )
-from ..libs.optimizers.algorithms.genetic.population.parent_selectors import (
+from libs.optimizers.algorithms.genetic.population.parent_selectors import (
     ParentSelectorElitistRandomized,
 )
-from ..libs.optimizers.algorithms.genetic.population.population_selectors import (
+from libs.optimizers.algorithms.genetic.population.population_selectors import (
     PopulationSelectorProbabilistic,
 )
-from ..libs.optimizers.algorithms.genetic.operators.mutations import (
+from libs.optimizers.algorithms.genetic.operators.mutations import (
     MutatorHomogenousVectorShuffle,
     MutatorHomogenousVectorSwap,
 )
-from ..libs.optimizers.algorithms.genetic.operators.crossovers import (
+from libs.optimizers.algorithms.genetic.operators.crossovers import (
     CrossoverHomogenousVectorKPointPoisson,
 )
-from ..libs.optimizers.algorithms.genetic.operators.fixers import (
+from libs.optimizers.algorithms.genetic.operators.fixers import (
     ChromosomeFixerTSPSimple,
 )
-from ..libs.optimizers.algorithms.genetic.population.generators import (
+from libs.optimizers.algorithms.genetic.population.generators import (
     PopulationGenerator,
 )
-from ..libs.solution.representation import SolutionRepresentationTSP
-from ..libs.environment.utils import (
+from libs.solution.representation import SolutionRepresentationTSP
+from libs.environment.utils import (
     travel_times,
     coords_distances,
     disable_edges,
@@ -88,7 +96,7 @@ def genetic_algorithm_tsp_simple_test(
 ) -> GeneticAlgorithmExecutionData:
     solution_creator_heuristic = SolutionCreatorTSPSimpleHeuristicNN()
     solution_creator_random = SolutionCreatorTSPSimpleRandom()
-    heuristic_solution = solution_creator_heuristic.create(environment, initial_vx=0)
+    heuristic_solution = solution_creator_random.create(environment, initial_vx=0)
     random_solutions = [
         solution_creator_random.create(environment, initial_vx=0)
         for _ in range(population_size - 1)
@@ -208,7 +216,9 @@ def genetic_algorithm_tsp_simple_test(
 
 
 if __name__ == "__main__":
-    coords = coords_random(20, max_x=10, max_y=10)
+    print("initializing environment")
+
+    coords = coords_random(5, max_x=10, max_y=10)
     distances = coords_distances(coords, std_dev=0.1)
     permitted_distances = disable_edges(distances, prohibition_p=0.1)
     wind = wind_random(permitted_distances, max_velocity=1)
@@ -216,6 +226,11 @@ if __name__ == "__main__":
     eff_speed = effective_speed(speed, wind)
     travel_t = travel_times(distances, eff_speed)
     environment = EnvironmentTSPSimple(travel_t)
+
+    solution_creator_heuristic = SolutionCreatorTSPSimpleHeuristicNN()
+    heuristic_solution = solution_creator_heuristic.create(environment, initial_vx=0)
+    cost_calculator = TSPCostCalculatorSimple()
+    heuristic_cost = cost_calculator.calculate_total(heuristic_solution, environment)
 
     max_cost = max(filter(lambda x: x > 0 and math.isfinite(x), np.nditer(environment.cost)))  # type: ignore
     mean_cost = np.mean(
@@ -226,13 +241,15 @@ if __name__ == "__main__":
     error_weight = 0.05 * mean_cost
     cost_weight = 1
 
+    print("calling the algorithm")
+
     result = genetic_algorithm_tsp_simple_test(
         environment=environment,
         population_size=20,
         max_iterations=100,
         max_iterations_no_update=20,
         timeout=60,
-        swap_p=0.05,
+        swap_p=0.1,
         swap_lam=1,
         shuffle_p=0.05,
         shuffle_lam=1,
@@ -242,6 +259,7 @@ if __name__ == "__main__":
         cost_weight=cost_weight,
     )
 
+    print(f"{heuristic_cost = }")
     print(
         (
             f"{result.finish_reason     = }\n"
@@ -252,11 +270,27 @@ if __name__ == "__main__":
         )
     )
 
+    now_str = datetime.now().strftime(r"%Y-%M-%d_%H-%m-%S")
+    save_path = Path(f"experiment0_{now_str}")
+
+    print(f"saving results as {save_path}")
+
+    with save_path.open("wb") as f:
+        pickle.dump(result, f)
+
+    print("results saved")
+
+    print("plotting")
+
     data = pd.DataFrame(
         data=result.iteration_best_costs,
         columns=["best cost"],
         # index=[("iteration", i) for i in range(len(result.iteration_best_costs))]
     )
+    plt.figure()
     sns.set_theme()
     ax = sns.lineplot(data=data)
     _ = ax.set_title("Experiment details")
+    plt.show()
+
+    print("exiting")
