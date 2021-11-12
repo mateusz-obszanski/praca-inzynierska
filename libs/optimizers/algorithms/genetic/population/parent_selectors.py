@@ -92,7 +92,9 @@ class ParentSelectorElitistRandomized(ParentSelector):
         population_size = len(population)
 
         costs = [
-            cost_calculator.calculate_total(SolutionRepresentationTSP(chromosome.sequence), environment)[0]
+            cost_calculator.calculate_total(
+                SolutionRepresentationTSP(chromosome.sequence), environment
+            )[0]
             for chromosome in population
         ]
 

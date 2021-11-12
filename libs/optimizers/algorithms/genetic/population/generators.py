@@ -96,23 +96,30 @@ class PopulationGenerator:
             mutated_population_fix_results,
         )
 
-        new_generation = list(mit.flatten(
-            crossover.execute(parent1, parent2) for parent1, parent2 in parents
-        ))
+        new_generation = list(
+            mit.flatten(
+                crossover.execute(parent1, parent2) for parent1, parent2 in parents
+            )
+        )
 
         new_generation_fixed: list[Chromosome]
         new_generation_fix_results: list[FixResult]
 
-        new_generation_fixed, new_generation_fix_results = map(list, mit.unzip(  # type: ignore
-            fixer.fix(chromosome, environment) for chromosome in new_generation
-        ))
+        new_generation_fixed, new_generation_fix_results = map(
+            list,
+            mit.unzip(  # type: ignore
+                fixer.fix(chromosome, environment) for chromosome in new_generation
+            ),
+        )
 
         old_generation = list(mit.flatten(parents))
         old_generation_costs = parent_costs
         old_generation_fix_results = parent_fix_results
 
         new_generation_costs = [
-            cost_calculator.calculate_total(SolutionRepresentationTSP(chromosome.sequence), environment)[0]
+            cost_calculator.calculate_total(
+                SolutionRepresentationTSP(chromosome.sequence), environment
+            )[0]
             for chromosome in new_generation_fixed
         ]
 

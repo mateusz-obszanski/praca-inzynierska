@@ -79,7 +79,8 @@ class PopulationSelectorProbabilistic(PopulationSelector):
         sorted_old_population: Population
 
         sorted_old_population = [
-            chromosome for _, chromosome in sorted(zip(costs, old_population), key=itemgetter(0))
+            chromosome
+            for _, chromosome in sorted(zip(costs, old_population), key=itemgetter(0))
         ]
 
         fix_results = list(it.chain(new_fix_results, old_fix_results))
