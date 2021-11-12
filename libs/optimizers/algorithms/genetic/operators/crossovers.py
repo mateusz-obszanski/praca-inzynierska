@@ -12,6 +12,37 @@ from .....utils.iteration import chunkify_randomly_indices, iterate_zigzag
 T = TypeVar("T")
 
 
+def _crossover_k_locus(
+    parent1: list[T], parent2: list[T], k: int
+) -> tuple[list[T], list[T]]:
+    """
+    Assumes that `parent1` and `parent2` have the same length.
+    """
+
+    parent_len = len(parent1)
+
+    loci = chunkify_randomly_indices(parent1, k + 1)
+
+    parent1_chunks = [
+        parent1[i:j] for i, j in mit.windowed(mit.value_chain(0, loci, parent_len), 2)
+    ]
+    parent2_chunks = [
+        parent2[i:j] for i, j in mit.windowed(mit.value_chain(0, loci, parent_len), 2)
+    ]
+
+    new_parent1_chunks = (
+        chunk for chunk in iterate_zigzag(parent1_chunks, parent2_chunks)
+    )
+    new_parent2_chunks = (
+        chunk for chunk in iterate_zigzag(parent2_chunks, parent1_chunks)
+    )
+
+    new_parent1 = list(it.chain.from_iterable(new_parent1_chunks))
+    new_parent2 = list(it.chain.from_iterable(new_parent2_chunks))
+
+    return new_parent1, new_parent2
+
+
 class Crossover(ABC):
     """
     Abstract base class.
@@ -93,14 +124,14 @@ class CrossoverHomogenousVectorKPoint(CrossoverKPoint):
         vxs1 = chromosome1.sequence
         vxs2 = chromosome2.sequence
 
-        new_vxs1, new_vxs2 = __crossover_k_locus(vxs1, vxs2, k)
+        new_vxs1, new_vxs2 = _crossover_k_locus(vxs1, vxs2, k)
 
         return ChromosomeHomogenousVector(new_vxs1), ChromosomeHomogenousVector(
             new_vxs2
         )
 
 
-class CrossoverHomogenousVactorKPointPoisson(CrossoverKPoint):
+class CrossoverHomogenousVectorKPointPoisson(CrossoverKPoint):
     """
     Crossover with varying locus number drawn from Poisson distribution.
     """
@@ -125,39 +156,8 @@ class CrossoverHomogenousVactorKPointPoisson(CrossoverKPoint):
         vxs1 = chromosome1.sequence
         vxs2 = chromosome2.sequence
 
-        new_vxs1, new_vxs2 = __crossover_k_locus(vxs1, vxs2, k)
+        new_vxs1, new_vxs2 = _crossover_k_locus(vxs1, vxs2, k)
 
         return ChromosomeHomogenousVector(new_vxs1), ChromosomeHomogenousVector(
             new_vxs2
         )
-
-
-def __crossover_k_locus(
-    parent1: list[T], parent2: list[T], k: int
-) -> tuple[list[T], list[T]]:
-    """
-    Assumes that `parent1` and `parent2` have the same length.
-    """
-
-    parent_len = len(parent1)
-
-    loci = chunkify_randomly_indices(parent1, k + 1)
-
-    parent1_chunks = [
-        parent1[i:j] for i, j in mit.windowed(mit.value_chain(0, loci, parent_len), 2)
-    ]
-    parent2_chunks = [
-        parent2[i:j] for i, j in mit.windowed(mit.value_chain(0, loci, parent_len), 2)
-    ]
-
-    new_parent1_chunks = (
-        chunk for chunk in iterate_zigzag(parent1_chunks, parent2_chunks)
-    )
-    new_parent2_chunks = (
-        chunk for chunk in iterate_zigzag(parent2_chunks, parent1_chunks)
-    )
-
-    new_parent1 = list(it.chain.from_iterable(new_parent1_chunks))
-    new_parent2 = list(it.chain.from_iterable(new_parent2_chunks))
-
-    return new_parent1, new_parent2

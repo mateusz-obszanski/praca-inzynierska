@@ -11,6 +11,7 @@ from .....solution.representation import SolutionRepresentation
 from .....environment import Environment
 from .....environment.cost import CostCalculator, CostT
 from .....utils.random import probabilities_by_value
+from .....solution.representation import SolutionRepresentationTSP
 
 
 PairedChromosomes = tuple[Chromosome, Chromosome]
@@ -66,7 +67,7 @@ class ParentSelectorElitist(ParentSelector):
         )
 
 
-class ParentSelectorElitistRandomized:
+class ParentSelectorElitistRandomized(ParentSelector):
     """
     Sorts popultaion by cost and groups into pairs. The best chromosomes have
     the highest probability of being chosen first, thus being paired with other
@@ -91,7 +92,7 @@ class ParentSelectorElitistRandomized:
         population_size = len(population)
 
         costs = [
-            cost_calculator.calculate_total(chromosome.sequence, environment)[0]
+            cost_calculator.calculate_total(SolutionRepresentationTSP(chromosome.sequence), environment)[0]
             for chromosome in population
         ]
 

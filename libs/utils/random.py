@@ -1,6 +1,5 @@
 from collections import Sequence
 import numpy as np
-from numpy import random as np_rnd
 
 
 def probabilities_by_value(values: Sequence[float]) -> list[float]:

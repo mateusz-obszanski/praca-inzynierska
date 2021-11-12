@@ -72,14 +72,9 @@ class CostCalculator(ABC):
 
             cost_generator = f(solution, environment)
 
-            try:
-                while True:
-                    # breaks on `StopIteration` from `f` (`self._stepper`)
-                    next_cost = next(cost_generator)
-                    self.total_cost += next_cost
-                    self.step_cost.append(next_cost)
-                    yield next_cost
-            except StopIteration:
-                return
+            for next_cost in cost_generator:
+                self.total_cost += next_cost
+                self.step_cost.append(next_cost)
+                yield next_cost
 
         return decorator_generator

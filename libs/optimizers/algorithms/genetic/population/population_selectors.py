@@ -1,11 +1,15 @@
 from abc import ABC, abstractmethod
 import itertools as it
 import numpy as np
+from operator import itemgetter
 
 from ..population import Population
 from ..operators.fixers import FixResult
 from .....environment import Environment
 from .....environment.cost.base import CostT
+
+
+# TODO simple elitist selector - n best
 
 
 class PopulationSelector(ABC):
@@ -33,8 +37,8 @@ class PopulationSelectorProbabilistic(PopulationSelector):
 
     def select(
         self,
-        new_generation: Population,
-        old_generation: Population,
+        offspring: Population,
+        parents: Population,
         environment: Environment,
         new_fix_results: list[FixResult],
         old_fix_results: list[FixResult],
@@ -69,43 +73,46 @@ class PopulationSelectorProbabilistic(PopulationSelector):
 
         assert invalidity_weight < cost_weight
 
-        old_population = it.chain(new_generation, old_generation)
+        old_population = it.chain(offspring, parents)
         costs = np.array(list(it.chain(new_costs, old_costs)), dtype=np.float64)
 
         sorted_old_population: Population
 
         sorted_old_population = [
-            chromosome for _, chromosome in sorted(zip(costs, old_population))
+            chromosome for _, chromosome in sorted(zip(costs, old_population), key=itemgetter(0))
         ]
 
         fix_results = list(it.chain(new_fix_results, old_fix_results))
 
         if n_best_to_bypass_grade:
             best_n = sorted_old_population[:n_best_to_bypass_grade]
-            to_be_graded = sorted_old_population[n_best_to_bypass_grade:]
-            costs_best_n = costs[:best_n]
-            costs = costs[best_n:]
-            fix_results = list(fix_results)
             best_n_fix_results = fix_results[:n_best_to_bypass_grade]
+            costs_best_n = costs[:best_n]
+            to_be_graded = sorted_old_population[n_best_to_bypass_grade:]
+            costs = costs[best_n:]
             fix_results = fix_results[n_best_to_bypass_grade:]
         else:
             best_n = []
+            best_n_fix_results = []
             costs_best_n = []
             to_be_graded = sorted_old_population
-            best_n_fix_results = []
 
         no_of_errors = np.array(
             [fix_result.no_of_errors for fix_result in fix_results], dtype=np.float64
         )
+
         grades = (
             cost_weight
             + error_weight * no_of_errors
-            + invalidity_weight * bool(no_of_errors)
+            + invalidity_weight * (no_of_errors > 0)
         ) * costs
+
         probabilities = grades / grades.sum()
 
+        to_be_graded_len = len(to_be_graded)
+
         passed_ixs = np.random.choice(
-            len(to_be_graded), p=probabilities, size=len(old_generation), replace=False
+            to_be_graded_len, p=probabilities, size=to_be_graded_len, replace=False
         )
 
         selected_population = best_n + [to_be_graded[ix] for ix in passed_ixs]

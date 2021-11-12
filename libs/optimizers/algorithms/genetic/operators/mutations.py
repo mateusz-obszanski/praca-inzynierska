@@ -116,6 +116,8 @@ class MutatorHomogenousVectorShuffle(Mutator):
         `lam` - lambda parameter for Poisson distribution.
         """
 
+        MAX_ITERATION = 100
+
         probability = self.probability
 
         # ! `chromosome.vertex_sequence` is not mutated, hence this is OK
@@ -127,7 +129,7 @@ class MutatorHomogenousVectorShuffle(Mutator):
             return chromosome, False
 
         vx_sequence = chromosome.sequence
-        split_ix_n = np.random.poisson(self.lam)
+        split_ix_n = np.random.poisson(self.lam) + 1
 
         chunks = chunkify_randomly(vx_sequence, split_ix_n + 1)
 
@@ -135,11 +137,14 @@ class MutatorHomogenousVectorShuffle(Mutator):
         chunk_permutation_ixs = list(range(chunk_n))
 
         # guarantee mutation
-        while True:
+        for _ in range(MAX_ITERATION):
             new_permutation: list[int] = np.random.permutation(chunk_n).tolist()
             if new_permutation != chunk_permutation_ixs:
                 chunk_permutation_ixs = new_permutation
                 break
+        else:
+            # executes if loop did not break
+            return chromosome, False
 
         shuffled_vx_sequence = list(
             it.chain.from_iterable(chunks[i] for i in chunk_permutation_ixs)

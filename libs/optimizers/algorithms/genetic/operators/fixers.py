@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from copy import deepcopy
+from copy import copy
 from typing import TypeVar
 from dataclasses import dataclass
 from enum import Enum, auto
@@ -51,7 +51,7 @@ class ChromosomeFixer(ABC):
         return (
             (chromosome, FixResult(FixStatus.SUCCESS))
             if inplace
-            else (deepcopy(chromosome), FixResult(FixStatus.SUCCESS))
+            else (copy(chromosome), FixResult(FixStatus.SUCCESS))
         )
 
     @abstractmethod
@@ -104,7 +104,7 @@ class ChromosomeFixerTSPSimple(ChromosomeFixer):
                 _, best_replacement = min(
                     (cost, vx)
                     for vx in leftout_vxs
-                    if (cost := cost_mx[prev_vx, vx]) > 0 and not math.isinf(cost)
+                    if (cost := cost_mx[prev_vx, vx]) > 0 and math.isfinite(cost)
                 )
             except ValueError:
                 # replacement is impossible (in place of current double)
@@ -145,7 +145,7 @@ class ChromosomeFixerTSPSimple(ChromosomeFixer):
                 _, best_replacement = min(
                     (cost, vx)
                     for vx in leftout_vxs
-                    if (cost := cost_mx[prev_vx, vx]) > 0 and not math.isinf(cost)
+                    if (cost := cost_mx[prev_vx, vx]) > 0 and math.isfinite(cost)
                 )
             except ValueError:
                 # min got empty iterator - no possible replacements
@@ -163,7 +163,7 @@ class ChromosomeFixerTSPSimple(ChromosomeFixer):
 
     def __valid_transitions(self, seq: list[int], cost_mx: DistanceMx):
         return (
-            cost > 0 and not math.isinf(cost)
+            cost > 0 and math.isfinite(cost)
             for cost in (cost_mx[i, j] for i, j in mit.windowed(seq, n=2))
         )
 

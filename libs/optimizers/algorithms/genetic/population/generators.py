@@ -17,6 +17,11 @@ from ..operators.fixers import ChromosomeFixer, FixResult, FixStatus
 from .....environment import Environment
 from .....environment.cost import CostCalculator
 from .....environment.cost.base import CostT
+from .....solution.representation import SolutionRepresentationTSP
+
+
+# TODO used concrete SolutionRepresentationTSP - make conversions between chromosomes and representations
+# or use idfferent classes
 
 
 class PopulationGenerationData(TypedDict):
@@ -72,6 +77,7 @@ class PopulationGenerator:
             mutation_data[mutator] = list(did_mutate)
 
         mutated_population = list(population_to_be_mutated)
+
         # only for parent_selector, only cares for number of errors
         mutated_population_fix_results = [
             FixResult(FixStatus.SUCCESS)
@@ -90,35 +96,23 @@ class PopulationGenerator:
             mutated_population_fix_results,
         )
 
-        new_generation = mit.flatten(
+        new_generation = list(mit.flatten(
             crossover.execute(parent1, parent2) for parent1, parent2 in parents
-        )
+        ))
 
-        # sorted_new_generation, new_costs = sort_population(
-        #     new_generation, environment, cost_calculator
-        # )
-
-        # TODO save the best solution from the new generation (the old generation's is saved in previous iteration)
-        # selected_new_generation = sorted_new_generation[:population_size]
-        # selected_costs = new_costs[:population_size]
-        # TODO use fixers
-        # TODO use population selector
-
-        new_generation_fixed: Population
+        new_generation_fixed: list[Chromosome]
         new_generation_fix_results: list[FixResult]
 
-        new_generation_fixed, new_generation_fix_results = mit.unzip(  # type: ignore
+        new_generation_fixed, new_generation_fix_results = map(list, mit.unzip(  # type: ignore
             fixer.fix(chromosome, environment) for chromosome in new_generation
-        )
-
-        new_generation_fixed = list(new_generation_fixed)
-        new_generation_fix_results = list(new_generation_fix_results)
+        ))
 
         old_generation = list(mit.flatten(parents))
         old_generation_costs = parent_costs
         old_generation_fix_results = parent_fix_results
+
         new_generation_costs = [
-            cost_calculator.calculate_total(chromosome.sequence, environment)[0]
+            cost_calculator.calculate_total(SolutionRepresentationTSP(chromosome.sequence), environment)[0]
             for chromosome in new_generation_fixed
         ]
 
