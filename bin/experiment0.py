@@ -16,6 +16,7 @@ import pandas as pd
 import more_itertools as mit
 import matplotlib.pyplot as plt
 import seaborn as sns
+from rich.progress import Progress
 
 from libs.environment import EnvironmentTSPSimple
 from libs.environment.cost.tsp import CostT, TSPCostCalculatorSimple
@@ -143,81 +144,101 @@ def genetic_algorithm_tsp_simple_test(
     best_chromosome = deepcopy(initial_best_chromosome)
     best_cost = initial_best_cost
 
-    for i in range(max_iterations):
-        delta_t = time() - t0
+    prev_update_t = time()
 
-        if (reason_timeout := (delta_t > timeout)) or (
-            reason_iterations := (
-                iteration_since_last_update > max_iterations_no_update
-            )
-        ):
-            reason = (
-                GeneticAlgorithmFinishReason.TIMEOUT
-                if reason_timeout
-                else GeneticAlgorithmFinishReason.MAX_ITERATIONS_NO_UPDATE
+    with Progress() as progress:
+
+        task_time = progress.add_task("[blue]Elapsed time...", total=timeout)
+        task_iter_no_update = progress.add_task("[cyan]Iterations sice update...", total=max_iterations_no_update)
+        task_iter = progress.add_task("[yellow]Iterations...", total=max_iterations)
+        i = 0
+
+        while i < max_iterations:
+            delta_t = time() - t0
+
+            if (reason_timeout := (delta_t > timeout)) or (
+                reason_iterations := (
+                    iteration_since_last_update > max_iterations_no_update
+                )
+            ):
+                reason = (
+                    GeneticAlgorithmFinishReason.TIMEOUT
+                    if reason_timeout
+                    else GeneticAlgorithmFinishReason.MAX_ITERATIONS_NO_UPDATE
+                )
+
+                return GeneticAlgorithmExecutionData(
+                    best_chromosome,
+                    best_cost,
+                    initial_population,
+                    initial_best_cost,
+                    end_population=current_population,
+                    iteration_best_costs=iteration_best_costs,
+                    execution_time=delta_t,
+                    finish_reason=reason,
+                    last_iteration_n=i,
+                )
+
+            current_population, population_generation_data = generation_generator.generate(
+                current_population,
+                environment,
+                cost_calculator,
+                parent_selector,
+                mutators,
+                crossover,
+                fixer,
+                population_selector,
+                invalidity_weight,
+                error_weight,
+                cost_weight,
             )
 
-            return GeneticAlgorithmExecutionData(
-                best_chromosome,
-                best_cost,
-                initial_population,
-                initial_best_cost,
-                end_population=current_population,
-                iteration_best_costs=iteration_best_costs,
-                execution_time=delta_t,
-                finish_reason=reason,
-                last_iteration_n=i,
-            )
+            costs = population_generation_data["new_costs"]
 
-        current_population, population_generation_data = generation_generator.generate(
-            current_population,
-            environment,
-            cost_calculator,
-            parent_selector,
-            mutators,
-            crossover,
-            fixer,
-            population_selector,
-            invalidity_weight,
-            error_weight,
-            cost_weight,
+            current_best_chromosome = current_population[0]
+            current_best_cost = costs[0]
+
+            for chromosome, cost in zip(current_population[1:], costs[1:]):
+                if cost < current_best_cost:
+                    current_best_chromosome = chromosome
+                    current_best_cost = cost
+
+            iteration_best_costs[i] = current_best_cost
+
+            if current_best_cost < best_cost:
+                best_chromosome = current_best_chromosome
+                best_cost = current_best_cost
+                iteration_since_last_update = 0
+            else:
+                iteration_since_last_update += 1
+
+            if int(delta_t - prev_update_t):
+                progress.update(task_time, completed=delta_t)
+                progress.update(task_iter_no_update, completed=iteration_since_last_update)
+                progress.update(task_iter, completed=i)
+
+                prev_update_t = time()
+
+            i += 1
+
+        progress.update(task_time, completed=time() - t0)
+        progress.update(task_iter, completed=i)
+        progress.update(task_iter_no_update, completed=iteration_since_last_update)
+
+        return GeneticAlgorithmExecutionData(
+            best_chromosome,
+            best_cost,
+            initial_population,
+            initial_best_cost,
+            end_population=current_population,
+            iteration_best_costs=iteration_best_costs,
+            execution_time=time() - t0,
+            finish_reason=GeneticAlgorithmFinishReason.MAX_ITERATIONS,
+            last_iteration_n=max_iterations - 1,
         )
 
-        costs = population_generation_data["new_costs"]
 
-        current_best_chromosome = current_population[0]
-        current_best_cost = costs[0]
-
-        for chromosome, cost in zip(current_population[1:], costs[1:]):
-            if cost < current_best_cost:
-                current_best_chromosome = chromosome
-                current_best_cost = cost
-
-        iteration_best_costs[i] = current_best_cost
-
-        if current_best_cost < best_cost:
-            best_chromosome = current_best_chromosome
-            best_cost = current_best_cost
-            iteration_since_last_update = 0
-        else:
-            iteration_since_last_update += 1
-
-    return GeneticAlgorithmExecutionData(
-        best_chromosome,
-        best_cost,
-        initial_population,
-        initial_best_cost,
-        end_population=current_population,
-        iteration_best_costs=iteration_best_costs,
-        execution_time=time() - t0,
-        finish_reason=GeneticAlgorithmFinishReason.MAX_ITERATIONS,
-        last_iteration_n=max_iterations - 1,
-    )
-
-
-if __name__ == "__main__":
-    print("initializing environment")
-
+def experiment_setup():
     coords = coords_random(5, max_x=10, max_y=10)
     distances = coords_distances(coords, std_dev=0.1)
     permitted_distances = disable_edges(distances, prohibition_p=0.1)
@@ -237,29 +258,37 @@ if __name__ == "__main__":
         [x for x in np.nditer(environment.cost) if x > 0 and math.isfinite(x)]
     )
 
-    invalidity_weight = 0.2 * mean_cost
-    error_weight = 0.05 * mean_cost
-    cost_weight = 1
+    exp_args = {
+        "environment": environment,
+        "population_size": 20,
+        "max_iterations": 100,
+        "max_iterations_no_update": 20,
+        "timeout": 10,
+        "swap_p": 0.1,
+        "swap_lam": 1,
+        "shuffle_p": 0.05,
+        "shuffle_lam": 1,
+        "crossover_lam": 1,
+        "invalidity_weight": 0.2 * mean_cost,
+        "error_weight": 0.05 * mean_cost,
+        "cost_weight": 1
+    }
+
+    other_info = {"heuristic_cost": heuristic_cost}
+
+    return exp_args, other_info
+
+
+def main():
+    print("initializing environment")
+
+    exp_args, other_info = experiment_setup()
 
     print("calling the algorithm")
 
-    result = genetic_algorithm_tsp_simple_test(
-        environment=environment,
-        population_size=20,
-        max_iterations=100,
-        max_iterations_no_update=20,
-        timeout=60,
-        swap_p=0.1,
-        swap_lam=1,
-        shuffle_p=0.05,
-        shuffle_lam=1,
-        crossover_lam=1,
-        invalidity_weight=invalidity_weight,
-        error_weight=error_weight,
-        cost_weight=cost_weight,
-    )
+    result = genetic_algorithm_tsp_simple_test(**exp_args)
 
-    print(f"{heuristic_cost = }")
+    print(f"{other_info['heuristic_cost'] = }")
     print(
         (
             f"{result.finish_reason     = }\n"
@@ -271,7 +300,7 @@ if __name__ == "__main__":
     )
 
     now_str = datetime.now().strftime(r"%Y-%M-%d_%H-%m-%S")
-    save_path = Path(f"experiment0_{now_str}")
+    save_path = Path(f"experiment0_{now_str}.pickle")
 
     print(f"saving results as {save_path}")
 
@@ -291,6 +320,10 @@ if __name__ == "__main__":
     sns.set_theme()
     ax = sns.lineplot(data=data)
     _ = ax.set_title("Experiment details")
-    plt.show()
+    plt.savefig(f"experiment0_{now_str}_plot.jpg")
 
     print("exiting")
+
+
+if __name__ == "__main__":
+    main()
