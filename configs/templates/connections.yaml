@@ -1,0 +1,30 @@
+# * Legend
+# [<value>] - default
+# <value1> | <value2> - either <value1> or <value2>
+
+connections:
+  weights:  # matrix or matrices for multiple traits, i.e.:
+    lengths:
+      random:
+        n:  # number of vertices
+        symmetric:  # [true] | false
+      # or
+      # matrix of lengths (`inf`, `Inf`, `INF`, ∞, and -1 are treated
+      # as infinity)
+    throughput:  # [infinity] for all graph edges
+      # either number or percentage (or matrix of thereof) or dictionary
+      # or list of thereof:
+      random:
+        n:  # number of vertices
+        symmetric:  # [true] | false
+        global:  # true | [false] - true for global value, false for matrix
+        min:  # [0], single value (global) or matrix
+        max:  # [infinity], single value (global) or matrix
+        mean:  # [(min + max)/2] in range [min, max]
+        distribution:  # [uniform] | gaussian
+      # if throughput is a percentage (or matrix of percentages), then following
+      # keys are needed:
+      min:  # [0]
+      max:  # [infinity]
+
+

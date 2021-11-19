@@ -1,6 +1,7 @@
 numpy
 scipy
 sympy
+more-itertools
 pandas
 requests
 dash

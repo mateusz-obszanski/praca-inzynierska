@@ -1,16 +1,21 @@
 # Language
 # - Python
 __pycache__
+.venv
+.pytest_cache
 
 # IDE
 # - VSCode
-__vscode__
+.vscode
+# - Jupyter
+.ipynb_checkpoints
 
 # - Vim
-*~
+*~*
 
 # Dev
 # /__dev
+*playground*
 
 # Misc
 *.tmp

@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 
 Time = float
+PositiveInt = int
 
 
 VehicleDecisions = type(NotImplemented)
@@ -31,7 +32,7 @@ class VehicleState:
 
 
 @dataclass
-class ConnectionState:
+class EdgeState:
     length: float
     wind_speed: float
 
@@ -44,10 +45,12 @@ class VertexState:
 @dataclass
 class EnvironmentState:
     time: Time
+    vehicles: list[VehicleState]
+    nodes: list[VertexState]
+    edges: list[EdgeState]
 
 
 @dataclass
 class VehicleSimulable:
-    decisions: Decisions
-    current_action_selector: ActionSelector
-
+    decisions: VehicleDecisions
+    current_action_selector: VehicleActionSelector
