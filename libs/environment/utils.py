@@ -1,9 +1,8 @@
-from typing import Optional, Union
+from typing import Optional, TypeVar, Union
 import itertools as it
 import numpy as np
 import pandas as pd
 from scipy.spatial import distance_matrix as sci_distance_mx
-from copy import deepcopy
 from ..types import Distribution
 from ..utils import symmetricize, antisymmetricize
 
@@ -17,46 +16,46 @@ WindMx = np.ndarray
 """antisymmetric matrix of vehicle's wind speed boost"""
 SpeedMx = np.ndarray
 TimeMx = np.ndarray
+Rng = TypeVar("Rng", bound=np.random.Generator)
 
 
 def coords_random(
     n: Natural,
+    rng: Rng,
     min_x: CoordT = 0,
     max_x: CoordT = 1,
     min_y: CoordT = 0,
     max_y: CoordT = 1,
-) -> CoordsDF:
+) -> tuple[np.ndarray, Rng]:
     """
     Generates random 2D coordinates.
     """
 
-    r_gen = np.random.uniform
+    uniform = rng.uniform
 
-    x = r_gen(min_x, max_x, size=n)
-    y = r_gen(min_y, max_y, size=n)
+    x = uniform(min_x, max_x, size=n)
+    y = uniform(min_y, max_y, size=n)
 
-    coords = np.stack([x, y], axis=1)
-
-    return CoordsDF(coords, columns=["x", "y"])
+    return np.dstack((x, y)), rng
 
 
-def coords_distances(
-    coords: CoordsDF,
+def point_distances(
+    coords: np.ndarray,
+    rng: Rng,
     symmetric: bool = True,
     std_dev: Optional[float] = None,
     symmetricize_from_triu: bool = True,
-) -> DistanceMx:
+) -> tuple[DistanceMx, Rng]:
     """
     Returns lengths beetween indices with given coords.
-    If `symmetric` and `std_dev` is `None`, returns physical lengths else generates noise.
-    If not `symmetric`, `std_dev` must be provided.
+    If `symmetric` and `std_dev` is `None`, returns physical lengths else
+    generates noise. If not `symmetric`, `std_dev` must be provided.
     """
 
-    coords_np = coords.to_numpy()
-    lengths = sci_distance_mx(coords_np, coords_np)
+    lengths = sci_distance_mx(coords, coords)
 
     if std_dev:
-        noise = np.abs(np.random.normal(scale=std_dev, size=2 * [coords_np.shape[0]]))
+        noise = np.abs(rng.normal(scale=std_dev, size=2*[coords.shape[0]]))
         lengths += noise
 
     if symmetric:
@@ -64,43 +63,53 @@ def coords_distances(
 
     np.fill_diagonal(lengths, 0)
 
-    return lengths
+    return lengths, rng
 
 
-def disable_edges(
-    distance_mx: DistanceMx,
-    prohibition_p: float,
+def insert_at_random_indices(
+    val: float,
+    mx: DistanceMx,
+    rng: Rng,
+    insertion_p: float,
     symmetrically: bool = True,
-    disabled_val: float = -1,
     symmetricize_from_triu: bool = True,
     inplace: bool = False,
-) -> DistanceMx:
-    distance_mx = distance_mx if inplace else deepcopy(distance_mx)
+) -> tuple[DistanceMx, Rng]:
 
-    vx_n = distance_mx.shape[0]
-    forbidden = np.random.choice(
+    vx_n = mx.shape[0]
+
+    forbidden = rng.choice(
         [True, False],
         size=(vx_n, vx_n),
-        p=[prohibition_p, 1 - prohibition_p],
+        p=[insertion_p, 1 - insertion_p],
     )
 
     forbidden[np.diag(vx_n * [True])] = True
+
     if symmetrically:
         forbidden = symmetricize(forbidden, symmetricize_from_triu)
 
-    distance_mx[forbidden] = disabled_val
+    if not inplace:
+        mx_disabled = np.empty_like(mx)
+        allowed = ~forbidden
+        mx_disabled[allowed] = mx[allowed]
+    else:
+        mx_disabled = mx
 
-    return distance_mx
+    mx[forbidden] = val
+
+    return mx, rng
 
 
 def wind_random(
-    lengths: DistanceMx,
+    side_size: int,
+    rng: Rng,
     distribution: Union[str, Distribution] = Distribution.UNIFORM,
     mean: float = 0,
     std_dev: float = 1,
     max_velocity: float = 1,
     antisymmetricize_from_triu: bool = True,
-) -> WindMx:
+) -> tuple[WindMx, Rng]:
     """
     Generates wind along graph's edges. `max_velocity` is ignored for normal distribution.
     `std_dev` and `mean` are ignored for uniform distribution.
@@ -112,9 +121,11 @@ def wind_random(
         except KeyError:
             raise NotImplementedError("distribution", distribution)
 
+    shape = (side_size, side_size)
+
     distribution_map = {
-        Distribution.NORMAL: lambda: np.random.normal(mean, std_dev, lengths.shape),  # type: ignore
-        Distribution.UNIFORM: lambda: np.random.uniform(-max_velocity, max_velocity, lengths.shape),  # type: ignore
+        Distribution.NORMAL: lambda: rng.normal(mean, std_dev, shape),  # type: ignore
+        Distribution.UNIFORM: lambda: rng.uniform(-max_velocity, max_velocity, shape),  # type: ignore
     }
 
     try:
@@ -124,29 +135,34 @@ def wind_random(
 
     wind_mx = antisymmetricize(wind_generator(), antisymmetricize_from_triu)  # type: ignore
     np.fill_diagonal(wind_mx, 0)
-    return wind_mx
+    return wind_mx, rng
 
 
-def effective_speed(speed: float, wind) -> SpeedMx:
+def effective_speed(speed: float, wind: np.ndarray) -> SpeedMx:
     """
     Wind should be antisymmetric.
     Negative values are instead set to 0.
     """
+
     effective_speed = speed + wind
     np.fill_diagonal(effective_speed, 0)
     effective_speed[effective_speed < 0] = 0
+
     return effective_speed
 
 
-def coords_grid(n: int) -> CoordsDF:
+def coords_grid(n: int) -> np.ndarray:
     coord_range = list(range(n))
+
     x = list(it.chain.from_iterable(it.repeat(i, n) for i in range(n)))
     y = list(it.chain.from_iterable(it.repeat(coord_range, n)))
-    return CoordsDF({"x": x, "y": y})
+
+    return np.dstack((x, y))
 
 
-def travel_times(distance_mx: DistanceMx, effective_speed: SpeedMx) -> TimeMx:
+def travel_times(distance_mx: DistanceMx, effective_speed: SpeedMx, disabled_val: float = -1) -> TimeMx:
     any_speed = (distance_mx > 0) & (effective_speed > 0)
-    travel_t = -np.ones_like(distance_mx)
+    travel_t = np.full_like(distance_mx, fill_value=disabled_val)
     travel_t[any_speed] = distance_mx[any_speed] / effective_speed[any_speed]
+
     return travel_t

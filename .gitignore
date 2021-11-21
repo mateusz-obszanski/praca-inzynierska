@@ -1,20 +1,22 @@
 # Language
-# - Python
+## Python
 __pycache__
 .venv
 .pytest_cache
 
 # IDE
-# - VSCode
+## VSCode
 .vscode
 # - Jupyter
 .ipynb_checkpoints
 
-# - Vim
+## Vim
 *~*
 
 # Dev
 # /__dev
+/docs/results_debug
+/data/experiments
 *playground*
 
 # Misc

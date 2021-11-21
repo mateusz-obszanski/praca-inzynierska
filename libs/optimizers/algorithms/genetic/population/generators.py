@@ -3,7 +3,7 @@ New population generators.
 """
 
 
-from typing import TypedDict
+from typing import TypeVar, TypedDict
 from collections.abc import Iterator
 import more_itertools as mit
 
@@ -32,6 +32,9 @@ class PopulationGenerationData(TypedDict):
 
 
 class PopulationGenerator:
+    def __init__(self, ) -> None:
+        pass
+
     @staticmethod
     def generate(
         old_population: Population,

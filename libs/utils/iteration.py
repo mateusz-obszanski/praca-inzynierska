@@ -1,5 +1,8 @@
-from collections import Iterator, Sequence, deque, Iterable, Hashable
+from collections.abc import Iterator, Sequence, Iterable, Hashable
+from collections import deque
 from typing import TypeVar, Union
+import itertools as it
+
 import numpy as np
 import more_itertools as mit
 
@@ -9,27 +12,28 @@ T1 = TypeVar("T1")
 T2 = TypeVar("T2")
 HashableT = TypeVar("HashableT", bound=Hashable)
 Matrix = Union[Sequence[Sequence[T]], np.ndarray]  # type: ignore
+Rng = TypeVar("Rng", bound=np.random.Generator)
 
 
 def exhaust_iterator(i: Iterator) -> None:
     deque(i, maxlen=0)
 
 
-def chunkify_randomly(a: list[T], n: int) -> list[list[T]]:
+def chunkify_randomly(a: list[T], n: int, rng: Rng) -> tuple[list[list[T]], Rng]:
     """
     Tries to chunkify `a` into `n` nonempty chunks. If it is impossible,
     returns smaller number of chunks.
     """
 
     ix_num = len(a)
-    split_ixs = chunkify_randomly_indices(a, n)
+    split_ixs, rng = random_chunk_range_indices(a, n, rng)
 
     chunks = [a[i:j] for i, j in mit.windowed(mit.value_chain(0, split_ixs, ix_num), 2)]
 
-    return chunks
+    return chunks, rng
 
 
-def chunkify_randomly_indices(a: list, n: int) -> list[int]:
+def random_chunk_range_indices(a: list, n: int, rng: Rng) -> tuple[list[int], Rng]:
     """
     Returns indices for splitting `a` into `n` nonempty chunks. If it is impossible,
     returns indices for chunkifying into smaller number of chunks.
@@ -44,27 +48,28 @@ def chunkify_randomly_indices(a: list, n: int) -> list[int]:
         if not ix_pool:
             break
 
-        new_split_ix = np.random.choice(list(ix_pool))
+        new_split_ix = rng.choice(list(ix_pool))
         ix_pool.difference_update([new_split_ix - 1, new_split_ix, new_split_ix + 1])
         split_ix_buffer.append(new_split_ix)
 
     split_ixs = sorted(split_ix_buffer)
 
-    return split_ixs
+    return split_ixs, rng
 
 
-def iterate_zigzag(a: Sequence[T1], b: Sequence[T2]) -> Iterator[Union[T1, T2]]:
+def iterator_alternating(a: Sequence[T1], b: Sequence[T2]) -> Iterator[Union[T1, T2]]:
     """
     a: [1, 2, 3, 4],
     b: [5, 6, 7, 8],
     result: [1, 6, 3, 8]
     """
 
-    source_choice = [a, b]
-    return (source_choice[i % 2][i] for i in range(len(a)))
+    assert len(a) == len(b)
+
+    return (source[i] for i, source in enumerate(mit.take(len(a), it.cycle((a, b)))))
 
 
-def double_indices(a: Iterable[HashableT]) -> dict[HashableT, deque[int]]:
+def find_doubled_indices(a: Iterable[HashableT]) -> dict[HashableT, deque[int]]:
     """
     Returns mapping to indices of doubles of an element in `a`.
     """

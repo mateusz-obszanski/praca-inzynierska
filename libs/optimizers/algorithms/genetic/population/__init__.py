@@ -2,4 +2,8 @@
 Chromosome population-oriented functionality.
 """
 
-from .__population import *
+
+from .chromosomes import ChromosomeTSP
+
+
+PopulationTSP = list[ChromosomeTSP]

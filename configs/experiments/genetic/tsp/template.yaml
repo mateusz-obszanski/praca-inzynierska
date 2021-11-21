@@ -1,0 +1,8 @@
+# tsp config template
+# lists value alternatives for each keyword
+
+solution-creator:
+  initial-node: 0
+  kind:
+    - random
+    - heuristic

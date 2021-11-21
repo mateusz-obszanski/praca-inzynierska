@@ -1,4 +1,5 @@
 import sys
+
 sys.path.append(".")
 sys.path.append("..")
 
@@ -42,7 +43,7 @@ from libs.optimizers.algorithms.genetic.operators.mutations import (
     MutatorHomogenousVectorSwap,
 )
 from libs.optimizers.algorithms.genetic.operators.crossovers import (
-    CrossoverHomogenousVectorKPointPoisson,
+    CrossoverKLociPoisson,
 )
 from libs.optimizers.algorithms.genetic.operators.fixers import (
     ChromosomeFixerTSPSimple,
@@ -53,8 +54,8 @@ from libs.optimizers.algorithms.genetic.population.generators import (
 from libs.solution.representation import SolutionRepresentationTSP
 from libs.environment.utils import (
     travel_times,
-    coords_distances,
-    disable_edges,
+    point_distances,
+    insert_at_random_indices,
     effective_speed,
     wind_random,
     coords_random,
@@ -115,7 +116,7 @@ def genetic_algorithm_tsp_simple_test(
         MutatorHomogenousVectorSwap(probability=swap_p, lam=swap_lam),
         MutatorHomogenousVectorShuffle(probability=shuffle_p, lam=shuffle_lam),
     ]
-    crossover = CrossoverHomogenousVectorKPointPoisson(lam=crossover_lam)
+    crossover = CrossoverKLociPoisson(lam=crossover_lam)
     fixer = ChromosomeFixerTSPSimple()
     generation_generator = PopulationGenerator()
 
@@ -149,7 +150,9 @@ def genetic_algorithm_tsp_simple_test(
     with Progress() as progress:
 
         task_time = progress.add_task("[blue]Elapsed time...", total=timeout)
-        task_iter_no_update = progress.add_task("[cyan]Iterations sice update...", total=max_iterations_no_update)
+        task_iter_no_update = progress.add_task(
+            "[cyan]Iterations sice update...", total=max_iterations_no_update
+        )
         task_iter = progress.add_task("[yellow]Iterations...", total=max_iterations)
         i = 0
 
@@ -179,7 +182,10 @@ def genetic_algorithm_tsp_simple_test(
                     last_iteration_n=i,
                 )
 
-            current_population, population_generation_data = generation_generator.generate(
+            (
+                current_population,
+                population_generation_data,
+            ) = generation_generator.generate(
                 current_population,
                 environment,
                 cost_calculator,
@@ -214,7 +220,9 @@ def genetic_algorithm_tsp_simple_test(
 
             if int(delta_t - prev_update_t):
                 progress.update(task_time, completed=delta_t)
-                progress.update(task_iter_no_update, completed=iteration_since_last_update)
+                progress.update(
+                    task_iter_no_update, completed=iteration_since_last_update
+                )
                 progress.update(task_iter, completed=i)
 
                 prev_update_t = time()
@@ -240,8 +248,8 @@ def genetic_algorithm_tsp_simple_test(
 
 def experiment_setup():
     coords = coords_random(5, max_x=10, max_y=10)
-    distances = coords_distances(coords, std_dev=0.1)
-    permitted_distances = disable_edges(distances, prohibition_p=0.1)
+    distances = point_distances(coords, std_dev=0.1)
+    permitted_distances = insert_at_random_indices(distances, insertion_p=0.1)
     wind = wind_random(permitted_distances, max_velocity=1)
     speed = 2.5
     eff_speed = effective_speed(speed, wind)
@@ -271,7 +279,7 @@ def experiment_setup():
         "crossover_lam": 1,
         "invalidity_weight": 0.2 * mean_cost,
         "error_weight": 0.05 * mean_cost,
-        "cost_weight": 1
+        "cost_weight": 1,
     }
 
     other_info = {"heuristic_cost": heuristic_cost}
