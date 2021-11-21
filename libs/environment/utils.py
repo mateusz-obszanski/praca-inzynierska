@@ -147,6 +147,6 @@ def coords_grid(n: int) -> CoordsDF:
 
 def travel_times(distance_mx: DistanceMx, effective_speed: SpeedMx) -> TimeMx:
     any_speed = (distance_mx > 0) & (effective_speed > 0)
-    travel_t = np.zeros_like(distance_mx)
+    travel_t = -np.ones_like(distance_mx)
     travel_t[any_speed] = distance_mx[any_speed] / effective_speed[any_speed]
     return travel_t
