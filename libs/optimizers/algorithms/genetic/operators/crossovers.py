@@ -11,7 +11,9 @@ Rng = TypeVar("Rng", bound=np.random.Generator)
 
 
 class Crossover(Protocol):
-    def __call__(self, p1: list[T], p2: list[T], rng: Rng, *args, **kwargs) -> tuple[list[T], list[T], Rng]:
+    def __call__(
+        self, p1: list[T], p2: list[T], rng: Rng, *args, **kwargs
+    ) -> tuple[list[T], list[T], Rng]:
         """
         Assumes that `p1` and `p2` have the same length.
         """
@@ -33,7 +35,9 @@ def crossover(p1: list[T], p2: list[T], rng: Rng) -> tuple[list[T], list[T], Rng
     return c1, c2, rng
 
 
-def crossover_k_locus(p1: list[T], p2: list[T], rng: Rng, k: int) -> tuple[list[T], list[T], Rng]:
+def crossover_k_locus(
+    p1: list[T], p2: list[T], rng: Rng, k: int
+) -> tuple[list[T], list[T], Rng]:
     """
     Assumes that `p1` and `p2` have the same length.
     """
@@ -79,6 +83,8 @@ class CrossoverKLociPoisson:
 
         self.lam = lam
 
-    def __call__(self, p1: list[T], p2: list[T], rng: Rng) -> tuple[list[T], list[T], Rng]:
+    def __call__(
+        self, p1: list[T], p2: list[T], rng: Rng
+    ) -> tuple[list[T], list[T], Rng]:
         k = 1 + rng.poisson(self.lam)
         return crossover_k_locus(p1, p2, k, rng)

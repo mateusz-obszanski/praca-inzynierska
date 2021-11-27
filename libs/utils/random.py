@@ -20,7 +20,9 @@ def probabilities_by_value(values: Sequence[float]) -> list[float]:
     return probabilities.astype(float).astype(float).tolist()
 
 
-def randomly_chunkify(seq: Sequence[T], p: float, rng: Rng) -> tuple[list[Sequence[T]], Rng]:
+def randomly_chunkify(
+    seq: Sequence[T], p: float, rng: Rng
+) -> tuple[list[Sequence[T]], Rng]:
     """
     Chunkifies `seq` by cutting at loci generated with probability `p`.
     """
@@ -29,7 +31,7 @@ def randomly_chunkify(seq: Sequence[T], p: float, rng: Rng) -> tuple[list[Sequen
 
     seq_len = len(seq)
     # x1 <cut> x2 <nocut> ... <nocut> xn
-    cuts = rng.choice([True, False], p=[p, 1-p], size=seq_len-1)
+    cuts = rng.choice([True, False], p=[p, 1 - p], size=seq_len - 1)
     cut_loci = np.arange(1, seq_len)[cuts]
     chunk_ranges = mit.windowed(mit.value_chain(0, cut_loci, seq_len), n=2)
     return [seq[i:j] for i, j in chunk_ranges], rng

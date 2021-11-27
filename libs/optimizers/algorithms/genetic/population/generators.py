@@ -10,13 +10,17 @@ import more_itertools as mit
 
 import numpy as np
 
-from.chromosomes import ChromosomeTSP
+from .chromosomes import ChromosomeTSP
 from .population_selectors import PopulationSelector
 from .parent_selectors import ParentSelector
 from ..operators.mutations import Mutator
 from ..operators.crossovers import Crossover
 from ..operators.fixers import Fixer, FixResult, FixStatus, check_chromosome
-from .....environment.cost_calculators import CostGenCreator, CostT, calculate_total_cost
+from .....environment.cost_calculators import (
+    CostGenCreator,
+    CostT,
+    calculate_total_cost,
+)
 
 
 Chromosome = TypeVar("Chromosome", bound=list[int])
@@ -84,20 +88,23 @@ def generate_population(
         else FixResult(FixStatus.FAILURE, no_of_errors)
         for no_of_errors in (
             sum(
-                not valid_transition for valid_transition in
-                check_chromosome(chromosome, cost_mx))
+                not valid_transition
+                for valid_transition in check_chromosome(chromosome, cost_mx)
+            )
             for chromosome in mutated_population
-            
         )
     ]
 
-    mutated_costs = [calculate_total_cost(cost_gen_creator(chromosome, cost_mx)) for chromosome in mutated_population]
+    mutated_costs = [
+        calculate_total_cost(cost_gen_creator(chromosome, cost_mx))
+        for chromosome in mutated_population
+    ]
 
     parents, parent_costs, parent_fix_results, rng = parent_selector(
         mutated_population,  # type: ignore
         mutated_costs,
         mutated_population_fix_results,
-        rng
+        rng,
     )
 
     new_generation = list(
@@ -121,9 +128,7 @@ def generate_population(
     old_generation_fix_results = parent_fix_results
 
     new_generation_costs = [
-        calculate_total_cost(
-            cost_gen_creator(chromosome, cost_mx)
-        )
+        calculate_total_cost(cost_gen_creator(chromosome, cost_mx))
         for chromosome in new_generation_fixed
     ]
 
@@ -131,7 +136,7 @@ def generate_population(
         new_population,
         new_population_costs,
         new_population_fix_results,
-        rng
+        rng,
     ) = population_selector(
         new_generation_fixed,  # type: ignore
         old_generation,  # type: ignore
@@ -142,7 +147,7 @@ def generate_population(
         invalidity_weight,
         error_weight,
         cost_weight,
-        rng
+        rng,
     )
 
     generation_data = PopulationGenerationData(

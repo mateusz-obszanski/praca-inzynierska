@@ -55,7 +55,7 @@ def point_distances(
     lengths = sci_distance_mx(coords, coords)
 
     if std_dev:
-        noise = np.abs(rng.normal(scale=std_dev, size=2*[coords.shape[0]]))
+        noise = np.abs(rng.normal(scale=std_dev, size=2 * [coords.shape[0]]))
         lengths += noise
 
     if symmetric:
@@ -160,7 +160,9 @@ def coords_grid(n: int) -> np.ndarray:
     return np.dstack((x, y))
 
 
-def travel_times(distance_mx: DistanceMx, effective_speed: SpeedMx, disabled_val: float = -1) -> TimeMx:
+def travel_times(
+    distance_mx: DistanceMx, effective_speed: SpeedMx, disabled_val: float = -1
+) -> TimeMx:
     any_speed = (distance_mx > 0) & (effective_speed > 0)
     travel_t = np.full_like(distance_mx, fill_value=disabled_val)
     travel_t[any_speed] = distance_mx[any_speed] / effective_speed[any_speed]

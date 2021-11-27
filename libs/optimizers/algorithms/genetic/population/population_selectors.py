@@ -116,8 +116,6 @@ def select_population_with_probability(
 
     selected_population = best_n + [to_be_graded[ix] for ix in passed_ixs]
     selected_costs = costs_best_n + [costs[ix] for ix in passed_ixs]
-    selected_fix_results = best_n_fix_results + [
-        fix_results[ix] for ix in passed_ixs
-    ]
+    selected_fix_results = best_n_fix_results + [fix_results[ix] for ix in passed_ixs]
 
     return selected_population, selected_costs, selected_fix_results, rng

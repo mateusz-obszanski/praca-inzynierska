@@ -39,7 +39,9 @@ class FixResult:
 class Fixer(Protocol):
     Chromosome = TypeVar("Chromosome")
 
-    def __call__(self, chromosome: Chromosome, cost_mx: np.ndarray, *args, **kwargs) -> tuple[Chromosome, FixResult]:
+    def __call__(
+        self, chromosome: Chromosome, cost_mx: np.ndarray, *args, **kwargs
+    ) -> tuple[Chromosome, FixResult]:
         ...
 
 
@@ -131,8 +133,12 @@ def fix_tsp(
     return chromosome, FixResult(FixStatus.SUCCESS)
 
 
-def check_chromosome(seq: Sequence[int], cost_mx: np.ndarray, initial_ix: int = 0) -> Generator[bool, None, None]:
+def check_chromosome(
+    seq: Sequence[int], cost_mx: np.ndarray, initial_ix: int = 0
+) -> Generator[bool, None, None]:
     return (
         cost > 0 and math.isfinite(cost)
-        for cost in (cost_mx[i, j] for i, j in mit.windowed(it.chain([initial_ix], seq), n=2))
+        for cost in (
+            cost_mx[i, j] for i, j in mit.windowed(it.chain([initial_ix], seq), n=2)
+        )
     )

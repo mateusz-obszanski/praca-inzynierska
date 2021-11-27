@@ -17,4 +17,4 @@ def genetic_tsp_gen(
     chromosome_fixer: Callable[[SolutionTSP], SolutionTSP],
     new_generation_creator: Callable[[PopulationTSP], PopulationTSP],
 ) -> StepperTSP:
-    
+    ...

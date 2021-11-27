@@ -84,12 +84,7 @@ def select_best_parents_with_probability(
     parent_costs = [costs[ix] for ix in ixs_by_probability]
     parent_fix_results = [prev_fix_results[ix] for ix in ixs_by_probability]
 
-    return (
-        paired_parents,
-        parent_costs,
-        parent_fix_results,
-        rng
-    )
+    return (paired_parents, parent_costs, parent_fix_results, rng)
 
 
 @overload
