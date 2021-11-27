@@ -1,4 +1,4 @@
-from typing import TypeVar
+from typing import TypeVar, Protocol
 import numpy as np
 import itertools as it
 import more_itertools as mit
@@ -8,6 +8,13 @@ from .....utils.iteration import random_chunk_range_indices, iterator_alternatin
 
 T = TypeVar("T")
 Rng = TypeVar("Rng", bound=np.random.Generator)
+
+
+class Crossover(Protocol):
+    def __call__(self, p1: list[T], p2: list[T], rng: Rng, *args, **kwargs) -> tuple[list[T], list[T], Rng]:
+        """
+        Assumes that `p1` and `p2` have the same length.
+        """
 
 
 def crossover(p1: list[T], p2: list[T], rng: Rng) -> tuple[list[T], list[T], Rng]:
@@ -26,7 +33,7 @@ def crossover(p1: list[T], p2: list[T], rng: Rng) -> tuple[list[T], list[T], Rng
     return c1, c2, rng
 
 
-def crossover_k_locus(p1: list[T], p2: list[T], k: int, rng: Rng) -> tuple[list[T], list[T], Rng]:
+def crossover_k_locus(p1: list[T], p2: list[T], rng: Rng, k: int) -> tuple[list[T], list[T], Rng]:
     """
     Assumes that `p1` and `p2` have the same length.
     """

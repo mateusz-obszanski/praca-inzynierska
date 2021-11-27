@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Generator
+from typing import Generator, Protocol, Generic, TypeVar
 from collections.abc import Sequence
 import itertools as it
 import more_itertools as mit
@@ -36,6 +36,13 @@ class FixResult:
             self.no_of_errors = 0
 
 
+class Fixer(Protocol):
+    Chromosome = TypeVar("Chromosome")
+
+    def __call__(self, chromosome: Chromosome, cost_mx: np.ndarray, *args, **kwargs) -> tuple[Chromosome, FixResult]:
+        ...
+
+
 def fix_tsp(
     chromosome: ChromosomeTSP,
     cost_mx: np.ndarray,
@@ -47,7 +54,7 @@ def fix_tsp(
 
     doubled_nodes = find_doubled_indices(chromosome)
     doubles = set(doubled_nodes.keys())
-    transitions_possible = _check_transitions(chromosome, cost_mx)
+    transitions_possible = check_chromosome(chromosome, cost_mx)
 
     if not doubles and all(transitions_possible):
         return chromosome, FixResult(FixStatus.SUCCESS)
@@ -82,7 +89,7 @@ def fix_tsp(
     if not leftout_vxs:
         no_of_errors = sum(
             not valid_transition
-            for valid_transition in _check_transitions(chromosome, cost_mx)
+            for valid_transition in check_chromosome(chromosome, cost_mx)
         )
 
         if no_of_errors == 0:
@@ -114,7 +121,7 @@ def fix_tsp(
             # doubles mapping has not been mutated so it is used
             no_of_errors = len(doubled_nodes) + sum(
                 not valid_transition
-                for valid_transition in _check_transitions(chromosome, cost_mx)
+                for valid_transition in check_chromosome(chromosome, cost_mx)
             )
             return chromosome, FixResult(FixStatus.FAILURE, no_of_errors)
 
@@ -124,7 +131,7 @@ def fix_tsp(
     return chromosome, FixResult(FixStatus.SUCCESS)
 
 
-def _check_transitions(seq: Sequence[int], cost_mx: np.ndarray, initial_ix: int = 0) -> Generator[bool, None, None]:
+def check_chromosome(seq: Sequence[int], cost_mx: np.ndarray, initial_ix: int = 0) -> Generator[bool, None, None]:
     return (
         cost > 0 and math.isfinite(cost)
         for cost in (cost_mx[i, j] for i, j in mit.windowed(it.chain([initial_ix], seq), n=2))

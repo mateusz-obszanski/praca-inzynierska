@@ -1,4 +1,4 @@
-from typing import TypeVar
+from typing import TypeVar, Protocol
 from collections.abc import Sequence
 
 import numpy as np
@@ -9,6 +9,11 @@ from .....utils.random import randomly_chunkify
 
 T = TypeVar("T")
 Rng =TypeVar("Rng", bound=np.random.Generator)
+
+
+class Mutator(Protocol):
+    def __call__(self, seq: Sequence[T], p: float, rng: Rng) -> tuple[list[T], Rng]:
+        ...
 
 
 def mutate_swap(seq: Sequence[T], p: float, rng: Rng) -> tuple[list[T], Rng]:
