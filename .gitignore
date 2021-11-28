@@ -16,7 +16,7 @@ __pycache__
 # Dev
 # /__dev
 /docs/results_debug
-/data/experiments
+/data
 *playground*
 
 # Misc
