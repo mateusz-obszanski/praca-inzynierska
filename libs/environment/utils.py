@@ -1,5 +1,6 @@
 from typing import Optional, TypeVar, Union
 import itertools as it
+import operator as op
 import numpy as np
 import pandas as pd
 from scipy.spatial import distance_matrix as sci_distance_mx
@@ -36,7 +37,7 @@ def coords_random(
     x = uniform(min_x, max_x, size=n)
     y = uniform(min_y, max_y, size=n)
 
-    return np.dstack((x, y)), rng
+    return np.stack((x, y), axis=1), rng
 
 
 def point_distances(
@@ -78,27 +79,27 @@ def insert_at_random_indices(
 
     vx_n = mx.shape[0]
 
-    forbidden = rng.choice(
+    to_insert = rng.choice(
         [True, False],
         size=(vx_n, vx_n),
         p=[insertion_p, 1 - insertion_p],
     )
 
-    forbidden[np.diag(vx_n * [True])] = True
+    to_insert[np.diag(vx_n * [True])] = True
 
     if symmetrically:
-        forbidden = symmetricize(forbidden, symmetricize_from_triu)
+        to_insert = symmetricize(to_insert, symmetricize_from_triu)
 
     if not inplace:
-        mx_disabled = np.empty_like(mx)
-        allowed = ~forbidden
-        mx_disabled[allowed] = mx[allowed]
+        mx_inserted = np.empty_like(mx)
+        allowed = ~to_insert
+        mx_inserted[allowed] = mx[allowed]
     else:
-        mx_disabled = mx
+        mx_inserted = mx
 
-    mx[forbidden] = val
+    mx_inserted[to_insert] = val
 
-    return mx, rng
+    return mx_inserted, rng
 
 
 def wind_random(
@@ -157,13 +158,20 @@ def coords_grid(n: int) -> np.ndarray:
     x = list(it.chain.from_iterable(it.repeat(i, n) for i in range(n)))
     y = list(it.chain.from_iterable(it.repeat(coord_range, n)))
 
-    return np.dstack((x, y))
+    return np.stack((x, y), axis=1)
 
 
 def travel_times(
     distance_mx: DistanceMx, effective_speed: SpeedMx, disabled_val: float = -1
 ) -> TimeMx:
-    any_speed = (distance_mx > 0) & (effective_speed > 0)
+    any_speed = (
+        (distance_mx > 0)
+        & (np.isfinite(distance_mx))
+        & (distance_mx != disabled_val)
+        & (effective_speed > 0)
+        & (np.isfinite(effective_speed))
+        & (effective_speed != disabled_val)
+    )
     travel_t = np.full_like(distance_mx, fill_value=disabled_val)
     travel_t[any_speed] = distance_mx[any_speed] / effective_speed[any_speed]
 
