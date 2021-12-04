@@ -11,17 +11,26 @@ CostGen = Generator[CostT, None, None]
 
 
 class CostGenCreator(Protocol):
+    """
+    Assumes that solution does not start from initial vx.
+    """
+
     def __call__(self, solution, cost_mx: np.ndarray, initial_ix: int = 0) -> CostGen:
-        ...
+        """
+        Assumes that solution does not start from initial vx.
+        """
 
 
 def calculate_total_cost(cost_generator: CostGen) -> CostT:
     return sum(cost_generator)
 
 
-def cost_tsp_gen(
+def cost_gen_tsp(
     solution: SolutionTSP, cost_mx: np.ndarray, initial_ix: int = 0
 ) -> CostGen:
+    """
+    Assumes that solution doesn't start from initial vx.
+    """
     yield cost_mx[initial_ix, solution[0]]
 
     yield from (

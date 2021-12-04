@@ -29,9 +29,9 @@ class ExperimentConfigTSP(BaseDataclass):
         ExperimentConfigTSP.check_numeric_fields(data)
         data = ExperimentConfigTSP.load_enums(data)
         ExperimentConfigTSP.validate_paths(data)
-        data = ExperimentConfigTSP.load_from_registers(data)
-        return data
+        return ExperimentConfigTSP.load_from_registers(data)
 
     @post_load
     def parse_paths(self, data, **_) -> dict[str, Any]:
+        data = ExperimentConfigTSP.convert_to_type(data)
         return ExperimentConfigTSP.convert_paths(data)

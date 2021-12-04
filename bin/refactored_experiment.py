@@ -11,7 +11,7 @@ import numpy as np
 
 
 from ..libs.solution import SolutionTSP
-from ..libs.environment.cost_calculators import CostGenCreator, CostT, cost_tsp_gen
+from ..libs.environment.cost_calculators import CostGenCreator, CostT, cost_gen_tsp
 from ..libs.optimizers.algorithms.genetic.population import Population, PopulationTSP
 from ..libs.optimizers.algorithms.genetic.population.generators import (
     PopulationGenerationData,

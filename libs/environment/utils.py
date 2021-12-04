@@ -1,9 +1,12 @@
 from typing import Optional, TypeVar, Union
 import itertools as it
 import operator as op
+
+import more_itertools as mit
 import numpy as np
 import pandas as pd
 from scipy.spatial import distance_matrix as sci_distance_mx
+
 from ..types import Distribution
 from ..utils import symmetricize, antisymmetricize
 
@@ -176,3 +179,23 @@ def travel_times(
     travel_t[any_speed] = distance_mx[any_speed] / effective_speed[any_speed]
 
     return travel_t
+
+
+def find_invalid_transitions(
+    solution: list[int], cost_mx: np.ndarray, forbidden_val: float = -1
+) -> list[tuple[tuple[int, int], tuple[int, int]]]:
+    """
+    Returns list of tuples ((a, b), (index of a in solution, index of b in solution)).
+    """
+    return [
+        ((a, b), (i, j))
+        for (i, a), (j, b) in mit.windowed(enumerate(solution), n=2)  # type: ignore
+        if not check_transition(a, b, cost_mx, forbidden_val)  # type: ignore
+    ]
+
+
+def check_transition(
+    a: int, b: int, cost_mx: np.ndarray, forbidden_val: float = -1
+) -> bool:
+    cost = cost_mx[a, b]
+    return np.isfinite(cost) and cost != forbidden_val

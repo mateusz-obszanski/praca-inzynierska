@@ -16,4 +16,4 @@ def create_tsp_solution_random(
     vx_n = cost_mx.shape[0]
     solution_tail = list(set(range(vx_n)) - {initial_vx})
     rng.shuffle(solution_tail)
-    return [initial_vx] + solution_tail
+    return [initial_vx] + solution_tail + [initial_vx]

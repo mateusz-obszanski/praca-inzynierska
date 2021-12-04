@@ -69,7 +69,25 @@ def iterator_alternating(a: Sequence[T1], b: Sequence[T2]) -> Iterator[Union[T1,
     return (source[i] for i, source in enumerate(mit.take(len(a), it.cycle((a, b)))))
 
 
-def find_doubled_indices(a: Iterable[HashableT]) -> dict[HashableT, deque[int]]:
+def find_all_occurence_indices(seq: Sequence[HashableT]) -> dict[HashableT, deque[int]]:
+    """
+    Returns dict elem -> [occurence indices]
+    """
+
+    registered_vals = set()
+    occurence_map = {}
+    for i, v in enumerate(seq):
+        if v in registered_vals:
+            occurence_map[v].append(i)
+        else:
+            registered_vals.add(v)
+            occurence_map[v] = deque([i])
+    return occurence_map
+
+
+def find_doubled_indices(
+    a: Iterable[HashableT],
+) -> dict[HashableT, deque[int]]:
     """
     Returns mapping to indices of doubles of an element in `a`.
     """

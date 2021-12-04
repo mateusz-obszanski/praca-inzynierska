@@ -45,14 +45,35 @@ def mutate_shuffle_ranges(seq: Sequence[T], p: float, rng: Rng) -> tuple[list[T]
 
 def mutate_reverse_ranges(seq: Sequence[T], p: float, rng: Rng) -> tuple[list[T], Rng]:
     """
+    Chunkifies `seq` at loci generated with probability `p` and reverses chunks
+    with probability `p`.
+    """
+
+    chunks, rng = randomly_chunkify(seq, p, rng)
+    should_reverse = rng.choice([True, False], p=[p, 1 - p], size=len(chunks))
+    return (
+        list(
+            it.chain.from_iterable(
+                reversed(c) if should_reverse[i] else c for i, c in enumerate(chunks)
+            )
+        ),
+        rng,
+    )
+
+
+def mutate_reverse_ranges_alternately(
+    seq: Sequence[T], p: float, rng: Rng
+) -> tuple[list[T], Rng]:
+    """
     Chunkifies `seq` at loci generated with probability `p` and reverses
     every second chunk starting randomly at first or second chunk.
     """
 
     chunks, rng = randomly_chunkify(seq, p, rng)
     reverse_odd = rng.choice([True, False])
-    reversed_chunks = (
+    transformed_chunks = (
         reversed(chunk) if bool(i % 2) == reverse_odd else chunk
         for i, chunk in enumerate(chunks)
     )
-    return list(it.chain.from_iterable(reversed_chunks)), rng
+
+    return list(it.chain.from_iterable(transformed_chunks)), rng
