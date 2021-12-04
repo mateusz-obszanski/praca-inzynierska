@@ -15,7 +15,7 @@ from .population_selectors import PopulationSelector
 from .parent_selectors import ParentSelector
 from ..operators.mutations import Mutator
 from ..operators.crossovers import Crossover
-from ..operators.fixers import Fixer, FixResult, FixStatus, check_chromosome
+from ..operators.fixers import Fixer, FixResult, FixStatus, check_transitions_deprecated
 from .....environment.cost_calculators import (
     CostGenCreator,
     CostT,
@@ -89,7 +89,9 @@ def generate_population(
         for no_of_errors in (
             sum(
                 not valid_transition
-                for valid_transition in check_chromosome(chromosome, cost_mx)
+                for valid_transition in check_transitions_deprecated(
+                    chromosome, cost_mx
+                )
             )
             for chromosome in mutated_population
         )

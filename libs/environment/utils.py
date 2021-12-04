@@ -1,4 +1,5 @@
-from typing import Optional, TypeVar, Union
+import math
+from typing import Generator, Optional, Sequence, TypeVar, Union
 import itertools as it
 import operator as op
 
@@ -9,6 +10,7 @@ from scipy.spatial import distance_matrix as sci_distance_mx
 
 from ..types import Distribution
 from ..utils import symmetricize, antisymmetricize
+from libs.utils.iteration import find_all_occurence_indices
 
 
 CoordT = float
@@ -198,4 +200,29 @@ def check_transition(
     a: int, b: int, cost_mx: np.ndarray, forbidden_val: float = -1
 ) -> bool:
     cost = cost_mx[a, b]
-    return np.isfinite(cost) and cost != forbidden_val
+    return math.isfinite(cost) and cost != forbidden_val
+
+
+def check_transitions(
+    seq: Sequence[int],
+    cost_mx: np.ndarray,
+    forbid_val: float = -1,
+) -> bool:
+    return all(check_transitions_iter(seq, cost_mx, forbid_val))
+
+
+def check_transitions_iter(
+    seq: Sequence[int],
+    cost_mx: np.ndarray,
+    forbid_val: float = -1,
+) -> Generator[bool, None, None]:
+    return (
+        check_transition(i, j, cost_mx, forbid_val) for i, j in mit.windowed(seq, n=2)  # type: ignore
+    )
+
+
+def check_doubles(seq: Sequence[int], initial_ix: int = 0):
+    return all(
+        (len(occs) == 1) if vx != initial_ix else True
+        for vx, occs in find_all_occurence_indices(seq).items()
+    )
