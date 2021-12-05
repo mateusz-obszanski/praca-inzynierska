@@ -112,29 +112,28 @@ def calculate_crowding_distance(
     return front
 
 
-def crowding_operator(individual: Individual, other_individual: Individual):
+def crowding_operator(individual: Individual, other_individual: Individual) -> bool:
     if (individual.rank < other_individual.rank) or (  # type: ignore
         (individual.rank == other_individual.rank)
         and (individual.crowding_distance > other_individual.crowding_distance)  # type: ignore
     ):
-        return 1
+        return True
     else:
-        return -1
+        return False
 
 
 def tournament(
     population: list[Individual], num_of_tour_particips: int, tour_p: float, rng: Rng
 ) -> tuple[Individual, Rng]:
-    participants = rng.choice(population, size=num_of_tour_particips)
-    best = None
-    for participant in participants:
+    participants_iter = iter(rng.choice(population, size=num_of_tour_particips))
+    best = next(participants_iter)
+    for participant in participants_iter:
         if best is None or (
-            crowding_operator(participant, best) == 1
-            and rng.choice([True, False], p=tour_p)
+            crowding_operator(participant, best) and rng.choice([True, False], p=tour_p)
         ):
             best = participant
 
-    return best, rng  # type: ignore
+    return best, rng
 
 
 def create_children(
@@ -165,12 +164,10 @@ def create_children(
 
 
 def evolver(
-    initial_pop: NSGAPopulation,
-    population_num: int,
-    inplace: bool = False
+    initial_pop: NSGAPopulation, population_num: int, inplace: bool = False
 ) -> Generator[list[Individual], None, None]:
     """
-    Care about returned_population.fronts[0]
+    Care about returned_population.fronts[0] - this is THE solution
     """
     # TODO yield additional data about fixing etc
     population = fast_nondominated_sort(initial_pop, inplace=inplace)
@@ -189,7 +186,9 @@ def evolver(
             front_num += 1
         calculate_crowding_distance(population.fronts[front_num])
         population.fronts[front_num].sort(key=lambda individual: individual.crowding_distance, reverse=True)  # type: ignore
-        new_population.extend(population.fronts[front_num][0:population_num-len(new_population)])
+        new_population.extend(
+            population.fronts[front_num][0 : population_num - len(new_population)]
+        )
         returned_population = population
         yield returned_population
         population = new_population
@@ -197,4 +196,3 @@ def evolver(
         for i, front in enumerate(population.fronts):
             population.fronts[i] = calculate_crowding_distance(front)
         children = create_children(population)
-    return returned_population.fronts[0]

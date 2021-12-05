@@ -1,3 +1,15 @@
+# TODO fixers should return FixStatus only
+# TODO population generation, tournament selection
+# TODO TSP experiment run
+# TODO mutations: insertion, deletion (associated with below vvv)
+# TODO chromosome sparsing with -1s for crossover (to longer)
+# TODO costs with time cutoff
+# TODO costs for MVMTSP - assign demand (package num) for cargo at each vertex and reward for its fulfillment (1 visit - 1 package)
+# TODO costs for IRP
+# TODO simulated annealing
+# TODO simulated annealing - change mutators and crossovers appropriately (additional dimension for cargo quantity in chromosomes)
+# TODO IRP run
+
 from dataclasses import dataclass, fields
 from typing import Any, Generator, Optional, TypeVar, TypedDict, Union
 from pathlib import Path

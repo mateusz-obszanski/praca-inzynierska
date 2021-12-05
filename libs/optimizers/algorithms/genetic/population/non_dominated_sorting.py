@@ -1,5 +1,6 @@
 # TODO remove module
 
+
 def fast_nds():
     """
     Based on implementation at
