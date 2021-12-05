@@ -1,0 +1,55 @@
+Fixer:
+	wyznacz indeksy dubli
+	znajdź zabronione przejścia A -> B
+	stwórz kolejki priorytetowe punktów B w miejscach zabronionych przejść:
+		priorytety: 1 - jest dublem, 2 - dystans, nie może być zabronione
+	jeżeli którakolwiek kolejka pusta:
+		zabij chromosom, return
+	w każdym miejscu zabronionym:
+		jeżeli ilość iteracji > max:
+			result - zabij chromosom, weź lepszego rodzica (poza tą funkcją)
+			return
+		bierz z kolejki dopóki B nie powtórzy się z branymi w poprzednich iteracjach
+		jeżeli nie było czego brać:
+			cofnij do losowej poprzedniej iteracji spróbuj wziąć następny B
+			
+Fixer - duble są ok:
+	znajdź zabronione przejścia
+	stwórz kolejki priorytetowe punktów B w miejscach zabronionych przejść:
+		priorytet: dystans, nie może być zabronione
+	jeżeli którakolwiek kolejka pusta:
+		zabij chromosom, return
+	w każdym miejscu zabronionym:
+		jeżeli ilość iteracji > max:
+			result - zabij chromosom, weź lepszego rodzica (poza tą funkcją)
+		bierz z kolejki dopóki B nie powtórzy się z branymi w poprzednich iteracjach
+		jeżeli nie było czego brać:
+			cofnij do poprzedniej losowej iteracji i w cofniętej spróbuj wziąć następny B
+	
+	
+II KONCEPCJA
+Błędy: duble, zabronione przejścia
+zmiany w miejscach błędów
+
+zabronione przejście:
+	pojedyńcze - alternatywy to duble i inne zebronione przejścia sortowane wg sumy kosztów A -> zabronione B z A -> C, jeżeli alternatywa -> C jest dopuszczalna
+dubel:
+	pojedyńczy - alternatywy to inne duble i zabronione przejścia sortowane j.w.
+	
+wiele błędów obok siebie:
+	alternatywy na brzegach to wszystkie duble sortowane wg kosztów do (od) brzegowego
+	w środku brać po kolei
+	
+	
+Osobniki w populacji raczej są podobne, więc po prostu załóż,
+że najczęściej błędy nie będą w odosobnionch genach i tylko je naprawiaj
+Jak są jakieś obok siebie, niech umrze. Poza tym opcje dla dubli to inne duble + zabronione, podobnie dla zabronionych
+Fallbacki z max_iter są ok
+
+błędy po crossoverze tylko w punktach podziału ...a|b... (jeśli rodzice są ok) ,chyba że mutacje coś psują
+1) a -/-> b, a i b niedublowane
+2) dubel -/-> b
+3) a -/-> dubel
+4) dubel -/-> dubel
+2) a|a
+3) pojedyńcze duble nie obok siebie (lub pary nie obok siebie)
