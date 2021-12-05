@@ -4,8 +4,8 @@ from operator import itemgetter
 from typing import Protocol
 
 from . import Population
-from ..operators.fixers import FixResult
-from .....environment.cost_calculators import CostT
+from libs.optimizers.algorithms.genetic.operators.fixers import FixResult
+from libs.environment.cost_calculators import CostT
 
 
 # TODO simple elitist selector - n best

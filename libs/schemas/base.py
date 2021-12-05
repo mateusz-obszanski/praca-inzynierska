@@ -6,7 +6,7 @@ from pathlib import Path
 
 from marshmallow import RAISE, ValidationError
 
-from ..types.type_registry import Registry
+from libs.types.type_registry import Registry
 
 
 @dataclass

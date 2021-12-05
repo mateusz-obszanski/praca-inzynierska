@@ -4,7 +4,7 @@ from collections.abc import Sequence
 import numpy as np
 import itertools as it
 
-from .....utils.random import randomly_chunkify
+from libs.utils.random import randomly_chunkify
 
 
 T = TypeVar("T")

@@ -8,8 +8,8 @@ import numpy as np
 import pandas as pd
 from scipy.spatial import distance_matrix as sci_distance_mx
 
-from ..types import Distribution
-from ..utils import symmetricize, antisymmetricize
+from libs.types import Distribution
+from libs.utils.matrix import symmetricize, antisymmetricize
 from libs.utils.iteration import find_all_occurence_indices
 
 

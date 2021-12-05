@@ -2,12 +2,9 @@
 Random solution creators.
 """
 
-
-import random
-
 import numpy as np
 
-from .. import SolutionTSP
+from libs.solution import SolutionTSP
 
 
 def create_tsp_solution_random(

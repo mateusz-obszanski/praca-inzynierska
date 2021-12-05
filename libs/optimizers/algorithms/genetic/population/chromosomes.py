@@ -1,6 +1,6 @@
 from typing import Generic, TypeVar
 
-from .....solution import SolutionTSP
+from libs.solution import SolutionTSP
 
 
 Gene = TypeVar("Gene")

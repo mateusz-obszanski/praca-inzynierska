@@ -4,7 +4,7 @@ import numpy as np
 import itertools as it
 import more_itertools as mit
 
-from .....utils.iteration import random_chunk_range_indices, iterator_alternating
+from libs.utils.iteration import random_chunk_range_indices, iterator_alternating
 
 
 T = TypeVar("T")

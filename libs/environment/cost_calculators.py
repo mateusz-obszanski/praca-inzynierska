@@ -3,7 +3,7 @@ from typing import Generator, Protocol
 import numpy as np
 import more_itertools as mit
 
-from ..solution import SolutionTSP
+from libs.solution import SolutionTSP
 
 
 CostT = float

@@ -17,8 +17,8 @@ from libs.environment.utils import (
     find_invalid_transitions,
 )
 
-from .....optimizers.algorithms.genetic.population.chromosomes import ChromosomeTSP
-from .....utils.iteration import (
+from libs.optimizers.algorithms.genetic.population.chromosomes import ChromosomeTSP
+from libs.utils.iteration import (
     find_all_occurence_indices,
     find_doubled_indices,
 )

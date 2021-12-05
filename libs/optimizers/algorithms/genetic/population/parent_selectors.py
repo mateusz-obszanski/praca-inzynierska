@@ -4,9 +4,9 @@ import more_itertools as mit
 import numpy as np
 
 from . import Population, Chromosome
-from ..operators.fixers import FixResult
-from .....environment.cost_calculators import CostT
-from .....utils.random import probabilities_by_value
+from libs.optimizers.algorithms.genetic.operators.fixers import FixResult
+from libs.environment.cost_calculators import CostT
+from libs.utils.random import probabilities_by_value
 
 
 PairedChromosomes = tuple[Chromosome, Chromosome]

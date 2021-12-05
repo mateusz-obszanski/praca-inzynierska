@@ -4,7 +4,7 @@ Heuristic solution creators.
 
 import numpy as np
 
-from ...utils.graph import graph_cycle_greedy_nn
+from libs.utils.graph import graph_cycle_greedy_nn
 
 
 def create_tsp_solution_nearest_neighbour(

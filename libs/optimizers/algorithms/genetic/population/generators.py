@@ -13,10 +13,15 @@ import numpy as np
 from .chromosomes import ChromosomeTSP
 from .population_selectors import PopulationSelector
 from .parent_selectors import ParentSelector
-from ..operators.mutations import Mutator
-from ..operators.crossovers import Crossover
-from ..operators.fixers import Fixer, FixResult, FixStatus, check_transitions_deprecated
-from .....environment.cost_calculators import (
+from libs.optimizers.algorithms.genetic.operators.mutations import Mutator
+from libs.optimizers.algorithms.genetic.operators.crossovers import Crossover
+from libs.optimizers.algorithms.genetic.operators.fixers import (
+    Fixer,
+    FixResult,
+    FixStatus,
+    check_transitions_deprecated,
+)
+from libs.environment.cost_calculators import (
     CostGenCreator,
     CostT,
     calculate_total_cost,
