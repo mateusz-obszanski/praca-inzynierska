@@ -84,11 +84,7 @@ def insert_at_random_indices(
 
     vx_n = mx.shape[0]
 
-    to_insert = rng.choice(
-        [True, False],
-        size=(vx_n, vx_n),
-        p=[insertion_p, 1 - insertion_p],
-    )
+    to_insert = rng.random(size=(vx_n, vx_n)) < insertion_p
 
     to_insert[np.diag(vx_n * [True])] = True
 

@@ -18,6 +18,7 @@ class Crossover(Protocol):
         """
         Assumes that `p1` and `p2` have the same length.
         """
+        ...
 
 
 def crossover(p1: list[T], p2: list[T], rng: Rng) -> tuple[list[T], list[T], Rng]:
@@ -195,9 +196,7 @@ def __chunkify_parents(
 def __reverse_chunks_with_prob(
     chunks: Sequence[Sequence[T]], p: float, rng: Rng
 ) -> tuple[Generator[Iterable[T], None, None], Rng]:
-    do_reverse: Sequence[bool] = rng.choice(
-        [True, False], p=(p, 1 - p), size=len(chunks)
-    )
+    do_reverse: Sequence[bool] = rng.random(size=len(chunks)) < p
     return (
         reversed(chunk) if do_reverse[i] else chunk for i, chunk in enumerate(chunks)
     ), rng

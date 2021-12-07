@@ -31,7 +31,7 @@ def randomly_chunkify(
 
     seq_len = len(seq)
     # x1 <cut> x2 <nocut> ... <nocut> xn
-    cuts = rng.random(size=seq_len-1) > p
+    cuts = rng.random(size=seq_len - 1) < p
     cut_loci = np.arange(1, seq_len)[cuts]
     chunk_ranges = mit.windowed(mit.value_chain(0, cut_loci, seq_len), n=2)
     return [seq[i:j] for i, j in chunk_ranges], rng

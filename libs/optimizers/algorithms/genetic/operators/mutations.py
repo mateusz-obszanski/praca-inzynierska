@@ -24,7 +24,7 @@ def mutate_swap(seq: Sequence[T], p: float, rng: Rng) -> tuple[list[T], Rng]:
     assert 0 <= p <= 1
 
     seq_array = np.array(seq)
-    marks = rng.random(size=len(seq_array)) > p
+    marks = rng.random(size=len(seq_array)) < p
     marked_elems = seq_array[marks]
     rng.shuffle(marked_elems)
     seq_array[marks] = marked_elems
@@ -50,7 +50,7 @@ def mutate_reverse_ranges(seq: Sequence[T], p: float, rng: Rng) -> tuple[list[T]
     """
 
     chunks, rng = randomly_chunkify(seq, p, rng)
-    should_reverse = rng.random(size=len(chunks)) > p
+    should_reverse = rng.random(size=len(chunks)) < p
     return (
         list(
             it.chain.from_iterable(
@@ -70,7 +70,7 @@ def mutate_reverse_ranges_alternately(
     """
 
     chunks, rng = randomly_chunkify(seq, p, rng)
-    reverse_odd = rng.random() > 0.5
+    reverse_odd = rng.random() < 0.5
     transformed_chunks = (
         reversed(chunk) if bool(i % 2) == reverse_odd else chunk
         for i, chunk in enumerate(chunks)

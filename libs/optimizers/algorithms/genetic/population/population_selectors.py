@@ -98,8 +98,7 @@ def select_population_with_probability(
         to_be_graded = sorted_old_population
 
     grades = (
-        cost_weight
-        + error_weight * np.ndarray(fix_results, dtype=np.float64)
+        cost_weight + error_weight * np.ndarray(fix_results, dtype=np.float64)
     ) * costs
 
     probabilities = grades / grades.sum()

@@ -77,7 +77,7 @@ def select_best_parents_with_probability(
 
     probabilities = probabilities_by_value(costs)
     ixs_by_probability = rng.choice(
-        range(population_size), p=probabilities, size=population_size, replace=False
+        population_size, p=probabilities, size=population_size, replace=False
     )
 
     paired_parents: list[PairedChromosomes] = [

@@ -160,7 +160,7 @@ def tournament(
     best = next(participants_iter)
     for participant in participants_iter:
         # avoid crowding, choose with probability
-        if crowding_operator(participant, best) and rng.random() > tour_p:
+        if crowding_operator(participant, best) and rng.random() < tour_p:
             best = participant
 
     return best, rng
