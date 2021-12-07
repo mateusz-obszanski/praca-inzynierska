@@ -170,9 +170,12 @@ def __fix_swap_inv_trans_with_valid(
         for ix in range(chromosome_len)
         if ix not in inv_target_chromosome_ixs and 0 != ix != the_last_ix
     ]
+    if not valid_vx_ixs:
+        # mistakes exist but with no alternatives => fixing impossible
+        return chromosome, False
     last_transition_invalid = invalid_transitions[-1][0][1] == initial_vx
-    prev_to_last_ix = chromosome_len - 2
     if last_transition_invalid:
+        prev_to_last_ix = chromosome_len - 2
         # edge case - destinations are considered invalid, but the last is fixed
         # add second to last index to invalid indices
         if len(inv_target_chromosome_ixs) > 1:
@@ -183,6 +186,9 @@ def __fix_swap_inv_trans_with_valid(
         else:
             # length is 1, if it was 0 would return earlier
             inv_target_chromosome_ixs[0] = prev_to_last_ix
+        if valid_vx_ixs[-1] == prev_to_last_ix:
+            # if present, always at the end
+            valid_vx_ixs.pop()
 
     already_swapped_at_mistake_ix: list[Optional[int]] = [
         None for _ in inv_target_chromosome_ixs
@@ -197,7 +203,7 @@ def __fix_swap_inv_trans_with_valid(
         current_mistake_chromosome_ix = inv_target_chromosome_ixs[mistake_ix]
         # sorting is needed in case of two mistakes next to each other - the
         # previous affects next
-        all_alternative_ixs_at_mistake_ix = __get_sorted_swap_alternatives(
+        all_alternative_ixs_at_mistake_ix = __get_sorted_swap_alternative_ixs(
             chromosome,
             valid_vx_ixs,
             cost_mx,
@@ -205,17 +211,13 @@ def __fix_swap_inv_trans_with_valid(
             forbidden_val=forbidden_val,
         )
         if all_alternative_ixs_at_mistake_ix:
-            current_already_used_alts = already_used_alts_at_mistake_ix[mistake_ix]
-            current_alternative_ixs_at_mistake_ix = (
-                aix
-                for aix in all_alternative_ixs_at_mistake_ix
-                if chromosome[aix] not in current_already_used_alts
-            )
+            current_already_used_alt_ixs = already_used_alts_at_mistake_ix[mistake_ix]
             valid_alt_ix = next(
                 (
-                    alt
-                    for alt in current_alternative_ixs_at_mistake_ix
-                    if alt not in current_already_used_alts
+                    aix
+                    for aix in all_alternative_ixs_at_mistake_ix
+                    if aix not in current_already_used_alt_ixs
+                    and chromosome[aix] not in already_swapped_at_mistake_ix
                 ),
                 None,
             )
@@ -236,14 +238,14 @@ def __fix_swap_inv_trans_with_valid(
         chromosome[current_mistake_chromosome_ix] = alt_vx
         chromosome[valid_alt_ix] = mistake_vx
         already_swapped_at_mistake_ix[mistake_ix] = alt_vx
-        already_used_alts_at_mistake_ix[mistake_ix].append(alt_vx)
+        already_used_alts_at_mistake_ix[mistake_ix].append(valid_alt_ix)
         mistake_ix += 1
 
     fix_status = check_chromosome_tsp(chromosome, cost_mx, initial_vx, forbidden_val)
     return chromosome, fix_status
 
 
-def __get_sorted_swap_alternatives(
+def __get_sorted_swap_alternative_ixs(
     chromosome: list[int],
     valid_vx_ixs: list[int],
     cost_mx: np.ndarray,
