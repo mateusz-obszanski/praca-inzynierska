@@ -17,7 +17,6 @@ from libs.optimizers.algorithms.genetic.operators.mutations import Mutator
 from libs.optimizers.algorithms.genetic.operators.crossovers import Crossover
 from libs.optimizers.algorithms.genetic.operators.fixers import (
     Fixer,
-    FixResult,
     FixStatus,
     check_transitions_deprecated,
 )
@@ -37,7 +36,7 @@ class PopulationGenerationData:
     parent_costs: list[CostT]
     new_costs: list[CostT]
     did_mutate: dict[Mutator, list[bool]]
-    fix_results: list[FixResult]
+    fix_statuses: list[FixStatus]
 
 
 def generate_population(
@@ -86,11 +85,10 @@ def generate_population(
 
     mutated_population = list(population_to_be_mutated)
 
+    # FIXME deprecated FixResults, now use bools
     # only for parent_selector, only cares for number of errors
     mutated_population_fix_results = [
-        FixResult(FixStatus.SUCCESS)
-        if not no_of_errors
-        else FixResult(FixStatus.FAILURE, no_of_errors)
+        not no_of_errors
         for no_of_errors in (
             sum(
                 not valid_transition

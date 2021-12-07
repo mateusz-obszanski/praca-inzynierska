@@ -29,20 +29,19 @@ class BaseDataclass:
     ) -> dict[str, Any]:
         if enum_fields is None:
             enum_fields = cls.get_enum_fields()
-
-        new_data = data if inplace else {**data}
-
+        if not inplace:
+            data = {**data}
         # look for enum names in data
         for name, field_type in enum_fields.items():
-            val = new_data.get(name)
+            val = data.get(name)
             if val is None:
                 continue
             enum_val: Enum = (
                 field_type[val] if isinstance(val, str) else field_type(val)  # type: ignore
             )
-            new_data[name] = enum_val.name if as_str else val
+            data[name] = enum_val.name if as_str else val
 
-        return new_data
+        return data
 
     @classmethod
     def check_numeric_fields(cls, data: dict[str, Any]) -> None:
@@ -57,8 +56,8 @@ class BaseDataclass:
         - `"ge"`: float,
         - `"le"`: float,
         - `"range"`: 2-element iterable or dict with keys:
-            - `"left_inclusive"`: `bool`,
-            - `"right_inclusive": `bool``,
+            - `"left_inclusive"`: `bool` (default: True),
+            - `"right_inclusive": `bool` (default: False),
             - `"bounds"` - 2-element iterable
         - `"values"` - possible values,
         - `"excluded"` - excluded values,
@@ -116,6 +115,8 @@ class BaseDataclass:
                         right_inclusive = True
                 else:
                     val_range = val_range_data
+                    left_inclusive = True
+                    right_inclusive = False
 
                 vmin, vmax = val_range
                 if (
@@ -176,23 +177,24 @@ class BaseDataclass:
     def convert_to_type(
         cls, data: dict[str, Any], inplace: bool = False
     ) -> dict[str, Any]:
-        new_data = data if inplace else {**data}
+        if not inplace:
+            data = {**data}
         for field in fields(cls):
             field_name = field.name
-            if field_name not in new_data:
+            if field_name not in data:
                 raise ValidationError(f"field named `{field_name}` not in `data`")
             new_t: Optional[type] = field.metadata.get("type")
             if new_t is None:
                 continue
             try:
-                new_data[field_name] = new_t(new_data[field_name])
+                data[field_name] = new_t(data[field_name])
             except Exception as e:
                 raise ValidationError(
                     f"could not convert field named `{field_name}` to `{new_t}`",
                     field_name,
-                    new_data[field_name],
+                    data[field_name],
                 ) from e
-        return new_data
+        return data
 
     @classmethod
     def validate_paths(cls, data: dict[str, Any], should_exist: bool = True) -> None:
@@ -225,13 +227,14 @@ class BaseDataclass:
     def convert_paths(
         cls, data: dict[str, Any], inplace: bool = False
     ) -> dict[str, Any]:
-        new_data = data if inplace else {**data}
+        if not inplace:
+            data = {**data}
         for field in fields(cls):
             if not field.metadata.get("is_path"):
                 continue
             field_name = field.name
-            new_data[field_name] = Path(new_data[field_name])
-        return new_data
+            data[field_name] = Path(data[field_name])
+        return data
 
     @classmethod
     def load_from_registers(
@@ -241,7 +244,8 @@ class BaseDataclass:
         Maps data fields if schame field is a `Registry`.
         """
 
-        new_data = data if inplace else {**data}
+        if not inplace:
+            data = {**data}
 
         for field in fields(cls):
             field_type = field.type
@@ -250,11 +254,11 @@ class BaseDataclass:
             field_name = field.name
             registry = field_type.get_registry()
             try:
-                new_data[field_name] = registry[field_name]
+                data[field_name] = registry[field_name]
             except KeyError as e:
                 raise ValidationError(
                     f"`{field_name}` not registered at registry",
                     field_name,
                     {"registry": registry},
                 ) from e
-        return new_data
+        return data

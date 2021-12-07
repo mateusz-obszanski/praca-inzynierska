@@ -4,9 +4,12 @@ import more_itertools as mit
 import numpy as np
 
 from . import Population, Chromosome
-from libs.optimizers.algorithms.genetic.operators.fixers import FixResult
 from libs.environment.cost_calculators import CostT
+from libs.optimizers.algorithms.genetic.operators.fixers import FixStatus
 from libs.utils.random import probabilities_by_value
+
+
+# TODO tournament selection
 
 
 PairedChromosomes = tuple[Chromosome, Chromosome]
@@ -22,20 +25,21 @@ class ParentSelector(Protocol):
         self,
         population: Population,
         costs: Sequence[CostT],
-        prev_fix_results: list[FixResult],
+        prev_fix_results: list[FixStatus],
         rng: Rng,
-    ) -> tuple[list[PairedChromosomes], list[CostT], list[FixResult], Rng]:
+    ) -> tuple[list[PairedChromosomes], list[CostT], list[FixStatus], Rng]:
         """
         Sorts population by cost and groups into pairs (best, second best), ...
         Assumes that population size is even.
         """
+        ...
 
 
 def select_best_parents(
     population: Population,
     costs: Sequence[CostT],
-    prev_fix_results: list[FixResult],
-) -> tuple[list[PairedChromosomes], list[CostT], list[FixResult]]:
+    prev_fix_results: list[FixStatus],
+) -> tuple[list[PairedChromosomes], list[CostT], list[FixStatus]]:
     """
     Sorts population by cost and groups into pairs (best, second best), ...
     Assumes that population size is even and costs positive.
@@ -58,9 +62,9 @@ def select_best_parents(
 def select_best_parents_with_probability(
     population: Population,
     costs: Sequence[CostT],
-    prev_fix_results: list[FixResult],
+    prev_fix_results: list[FixStatus],
     rng: Rng,
-) -> tuple[list[PairedChromosomes], list[CostT], list[FixResult], Rng]:
+) -> tuple[list[PairedChromosomes], list[CostT], list[FixStatus], Rng]:
     """
     Sorts popultaion by cost and groups into pairs. The best chromosomes have
     the highest probability of being chosen first, thus being paired with other

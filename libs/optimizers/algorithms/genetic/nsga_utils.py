@@ -1,5 +1,33 @@
 """
-Based on: https://github.com/baopng/NSGA-II (license MIT)
+Based on: https://github.com/baopng/NSGA-II
+
+Authors:
+- Pham Ngo Gia Bao, Ho Chi Minh University of Technology
+- Tram Loi Quan, Ho Chi Minh University of Technology
+- A/Prof. Quan Thanh Tho, Ho Chi Minh University of Technology (advisor)
+- A/Prof. Akhil Garg, Shantou University (advisor)
+
+Original licence:
+
+Copyright (c) 2018 Authors (noted in README.md)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
+so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 """
 
 
@@ -57,7 +85,8 @@ class Individual(object):
 def fast_nondominated_sort(
     population: NSGAPopulation, inplace: bool = False
 ) -> NSGAPopulation:
-    population = population if inplace else NSGAPopulation(population)
+    if not inplace:
+        population = NSGAPopulation(population)
     population.fronts = [[]]
     assert len(population) >= 0
     for individual in population:
@@ -88,10 +117,12 @@ def fast_nondominated_sort(
 def calculate_crowding_distance(
     front: list[Individual], inplace: bool = False
 ) -> list[Individual]:
-    front = front if inplace else [deepcopy(i) for i in front]
+    if not inplace:
+        front = deepcopy(front)
 
     if len(front) <= 0:
         return front
+
     solutions_num = len(front)
     for individual in front:
         individual.crowding_distance = 0
@@ -128,9 +159,8 @@ def tournament(
     participants_iter = iter(rng.choice(population, size=num_of_tour_particips))
     best = next(participants_iter)
     for participant in participants_iter:
-        if best is None or (
-            crowding_operator(participant, best) and rng.choice([True, False], p=tour_p)
-        ):
+        # avoid crowding, choose with probability
+        if crowding_operator(participant, best) and rng.random() > tour_p:
             best = participant
 
     return best, rng

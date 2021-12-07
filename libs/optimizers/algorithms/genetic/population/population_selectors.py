@@ -4,10 +4,11 @@ from operator import itemgetter
 from typing import Protocol
 
 from . import Population
-from libs.optimizers.algorithms.genetic.operators.fixers import FixResult
 from libs.environment.cost_calculators import CostT
+from libs.optimizers.algorithms.genetic.operators.fixers import FixStatus
 
 
+# TODO deprecate module in favor of parent selectors
 # TODO simple elitist selector - n best
 
 
@@ -19,8 +20,8 @@ class PopulationSelector(Protocol):
         self,
         new_generation: Population,
         old_generation: Population,
-        new_fix_results: list[FixResult],
-        old_fix_results: list[FixResult],
+        new_fix_results: list[FixStatus],
+        old_fix_results: list[FixStatus],
         new_costs: list[CostT],
         old_costs: list[CostT],
         invalidity_weight: float,
@@ -29,15 +30,15 @@ class PopulationSelector(Protocol):
         rng: Rng,
         *args,
         **kwargs,
-    ) -> tuple[Population, list[CostT], list[FixResult], Rng]:
+    ) -> tuple[Population, list[CostT], list[FixStatus], Rng]:
         ...
 
 
 def select_population_with_probability(
     offspring: Population,
     parents: Population,
-    new_fix_results: list[FixResult],
-    old_fix_results: list[FixResult],
+    new_fix_results: list[FixStatus],
+    old_fix_results: list[FixStatus],
     new_costs: list[CostT],
     old_costs: list[CostT],
     invalidity_weight: float,
@@ -45,7 +46,7 @@ def select_population_with_probability(
     cost_weight: float,
     rng: Rng,
     n_best_to_bypass_grade: int = 0,
-) -> tuple[Population, list[CostT], list[FixResult], Rng]:
+) -> tuple[Population, list[CostT], list[FixStatus], Rng]:
     """
     Implements chromosome selection method based on costs and validity.
     Assigns grades (probabilities) from 0 to 1 to each chromosome in joined
@@ -96,14 +97,9 @@ def select_population_with_probability(
         costs_best_n = []
         to_be_graded = sorted_old_population
 
-    no_of_errors = np.array(
-        [fix_result.no_of_errors for fix_result in fix_results], dtype=np.float64
-    )
-
     grades = (
         cost_weight
-        + error_weight * no_of_errors
-        + invalidity_weight * (no_of_errors > 0)
+        + error_weight * np.ndarray(fix_results, dtype=np.float64)
     ) * costs
 
     probabilities = grades / grades.sum()
