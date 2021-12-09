@@ -34,7 +34,7 @@ from ..libs.optimizers.algorithms.genetic.population.population_selectors import
     select_population_with_probability,
 )
 from ..libs.optimizers.algorithms.genetic.population.parent_selectors import (
-    ParentSelector,
+    ParentSelectorDeprecated,
     select_best_parents_with_probability,
 )
 from ..libs.optimizers.algorithms.genetic.operators.fixers import Fixer
@@ -53,7 +53,7 @@ StepperTSP = Generator[tuple[Population, PopulationGenerationData, Rng], None, N
 def genetic_tsp_gen(
     population: PopulationTSP,
     cost_mx: np.ndarray,
-    parent_selector: ParentSelector,
+    parent_selector: ParentSelectorDeprecated,
     population_selector: PopulationSelector,
     crossover: Crossover,
     chromosome_fixer: Fixer,
@@ -65,20 +65,7 @@ def genetic_tsp_gen(
     rng: np.random.Generator,
 ) -> StepperTSP:
     while True:
-        new_population, generation_data, rng = generate_population(
-            population,
-            cost_mx,
-            cost_gen,
-            parent_selector,
-            mutators,
-            crossover,
-            chromosome_fixer,
-            population_selector,
-            invalidity_weight,
-            error_weight,
-            cost_weight,
-            rng,
-        )
+        parents = parent_selector(population, costs)
 
         yield new_population, generation_data, rng  # type: ignore
 

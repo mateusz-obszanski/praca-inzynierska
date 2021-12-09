@@ -12,7 +12,7 @@ import numpy as np
 
 from .chromosomes import ChromosomeTSP
 from .population_selectors import PopulationSelector
-from .parent_selectors import ParentSelector
+from .parent_selectors import ParentSelectorDeprecated
 from libs.optimizers.algorithms.genetic.operators.mutations import Mutator
 from libs.optimizers.algorithms.genetic.operators.crossovers import Crossover
 from libs.optimizers.algorithms.genetic.operators.fixers import (
@@ -43,7 +43,7 @@ def generate_population(
     old_population: Sequence[ChromosomeTSP],
     cost_mx: np.ndarray,
     cost_gen_creator: CostGenCreator,
-    parent_selector: ParentSelector,
+    parent_selector: ParentSelectorDeprecated,
     mutators: list[Mutator],
     crossover: Crossover,
     fixer: Fixer,

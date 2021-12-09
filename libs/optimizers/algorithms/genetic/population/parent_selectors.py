@@ -22,6 +22,17 @@ class ParentSelector(Protocol):
     """
 
     def __call__(
+        self, population: Sequence[Chromosome], costs: Sequence[CostT], rng: Rng
+    ) -> tuple[list[Chromosome], Rng]:
+        ...
+
+
+class ParentSelectorDeprecated(Protocol):
+    """
+    Assumes that population size is even.
+    """
+
+    def __call__(
         self,
         population: Population,
         costs: Sequence[CostT],

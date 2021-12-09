@@ -1,4 +1,4 @@
-from collections.abc import Iterator, Sequence, Iterable, Hashable
+from collections.abc import Iterator, Sequence, Iterable, Hashable, Container
 from collections import deque
 from typing import TypeVar, Union
 import itertools as it
@@ -13,6 +13,21 @@ T2 = TypeVar("T2")
 HashableT = TypeVar("HashableT", bound=Hashable)
 Matrix = Union[Sequence[Sequence[T]], np.ndarray]  # type: ignore
 Rng = TypeVar("Rng", bound=np.random.Generator)
+Chunk = list
+OrderedSplitVals = tuple
+
+
+def split_list_mult(
+    seq: list[T], split_vals: Container[T]
+) -> tuple[tuple[Chunk[T], ...], OrderedSplitVals[T]]:
+    split_ixs, ordered_split_vals = zip(
+        *((i, v) for i, v in enumerate(seq) if v in split_vals)
+    )
+    chunks = tuple(
+        seq[b + 1 : e]  # type: ignore
+        for b, e in mit.windowed(it.chain((-1,), split_ixs, (len(seq),)), n=2)
+    )
+    return chunks, ordered_split_vals  # type: ignore
 
 
 def exhaust_iterator(i: Iterator) -> None:
