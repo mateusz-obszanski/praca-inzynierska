@@ -12,24 +12,71 @@ Rng = TypeVar("Rng", bound=np.random.Generator)
 
 
 class Mutator(Protocol):
-    def __call__(self, seq: Sequence[T], p: float, rng: Rng) -> tuple[list[T], Rng]:
+    def __call__(
+        self, c: np.ndarray, p: float, rng: Rng, *args
+    ) -> tuple[np.ndarray, Rng]:
         ...
 
 
-def mutate_swap(seq: Sequence[T], p: float, rng: Rng) -> tuple[list[T], Rng]:
+def mutate_swap(c: np.ndarray, p: float, rng: Rng) -> tuple[np.ndarray, Rng]:
     """
     Shuffles `seq` on indices marked with probability `p`.
     """
 
-    assert 0 <= p <= 1
-
-    seq_array = np.array(seq)
-    marks = rng.random(size=len(seq_array)) < p
-    marked_elems = seq_array[marks]
+    marks = rng.random(size=c.shape) < p
+    marked_elems = c[marks]
     rng.shuffle(marked_elems)
-    seq_array[marks] = marked_elems
+    c[marks] = marked_elems
 
-    return seq_array.tolist(), rng
+    return c, rng
+
+
+def mutate_insert(
+    c: np.ndarray,
+    p: float,
+    rng: Rng,
+    rand_range: tuple[int, int],
+    ini_and_dummy_vxs: set[int],
+    fillval: int,
+) -> tuple[np.ndarray, Rng]:
+    """
+    `p` probability of insertion at index - resulting seq will have random val
+    inserted at that index.
+    `rand_range` - range [min, max) to draw values from.
+    """
+
+    c_len = c.shape[0]
+    marks: np.ndarray = rng.random(size=c_len) < p
+    fillvals: np.ndarray = c == fillval
+    repl_marks: np.ndarray = fillvals & marks
+    choice_pool: np.ndarray = np.fromiter(
+        x for x in range(*rand_range) if x not in ini_and_dummy_vxs
+    )
+    v_inplace_fv: np.ndarray = rng.choice(
+        choice_pool, size=np.count_nonzero(repl_marks)
+    )
+    c[repl_marks] = v_inplace_fv
+    ins_marks = marks.copy()
+    ins_marks[repl_marks] = False
+    mutated = np.empty(shape=(c_len + np.count_nonzero(ins_marks)), dtype=np.int64)
+    mutated[ins_marks] = rng.choice(choice_pool, size=ins_marks.shape)
+    mutated[~marks] = c
+
+    return mutated, rng
+
+
+def mutate_del(
+    c: np.ndarray, p: float, rng: Rng, fillval: int
+) -> tuple[np.ndarray, Rng]:
+    """
+    `p` - probability of deletion at each index by inserting `fillval`.
+    """
+
+    seq_len = len(c)
+    marks = rng.random(size=seq_len) < p
+    mutated = np.array(c)
+    mutated[marks] = fillval
+    return mutated.tolist()
 
 
 def mutate_shuffle_ranges(seq: Sequence[T], p: float, rng: Rng) -> tuple[list[T], Rng]:

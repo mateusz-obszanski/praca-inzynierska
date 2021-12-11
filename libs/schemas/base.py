@@ -25,12 +25,9 @@ class BaseDataclass:
         data: dict[str, Any],
         as_str: bool = False,
         enum_fields: Optional[dict[str, type[Enum]]] = None,
-        inplace: bool = False,
     ) -> dict[str, Any]:
         if enum_fields is None:
             enum_fields = cls.get_enum_fields()
-        if not inplace:
-            data = {**data}
         # look for enum names in data
         for name, field_type in enum_fields.items():
             val = data.get(name)
@@ -174,11 +171,7 @@ class BaseDataclass:
         return enum_fields
 
     @classmethod
-    def convert_to_type(
-        cls, data: dict[str, Any], inplace: bool = False
-    ) -> dict[str, Any]:
-        if not inplace:
-            data = {**data}
+    def convert_to_type(cls, data: dict[str, Any]) -> dict[str, Any]:
         for field in fields(cls):
             field_name = field.name
             if field_name not in data:
@@ -224,11 +217,7 @@ class BaseDataclass:
                 ) from e
 
     @classmethod
-    def convert_paths(
-        cls, data: dict[str, Any], inplace: bool = False
-    ) -> dict[str, Any]:
-        if not inplace:
-            data = {**data}
+    def convert_paths(cls, data: dict[str, Any]) -> dict[str, Any]:
         for field in fields(cls):
             if not field.metadata.get("is_path"):
                 continue
@@ -237,15 +226,10 @@ class BaseDataclass:
         return data
 
     @classmethod
-    def load_from_registers(
-        cls, data: dict[str, Any], inplace: bool = False
-    ) -> dict[str, Any]:
+    def load_from_registers(cls, data: dict[str, Any]) -> dict[str, Any]:
         """
         Maps data fields if schame field is a `Registry`.
         """
-
-        if not inplace:
-            data = {**data}
 
         for field in fields(cls):
             field_type = field.type

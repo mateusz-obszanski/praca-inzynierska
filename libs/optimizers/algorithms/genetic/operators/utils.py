@@ -14,14 +14,12 @@ Rng = TypeVar("Rng", bound=np.random.Generator)
 
 
 def rand_fill_to_n(
-    seq: Sequence[T1], fill_val: T2, n: int, rng: Rng, inplace: bool = False
+    seq: Sequence[T1], fill_val: T2, n: int, rng: Rng
 ) -> tuple[list[Union[T1, T2]], Rng]:
     """
     Assumes that `n >= len(c1)`
     """
 
-    if not inplace:
-        seq = [*seq]
     seq_len = len(seq)
     diff = n - seq_len
 
@@ -49,7 +47,7 @@ def rand_fill_to_n(
 
 
 def rand_fill_shorter(
-    c1: Sequence[T1], c2: Sequence[T2], fill_val: T3, rng: Rng, inplace: bool = False
+    c1: Sequence[T1], c2: Sequence[T2], fill_val: T3, rng: Rng
 ) -> tuple[Sequence[Union[T1, T2, T3]], Sequence[Union[T1, T2, T3]], Rng]:
     c1_len = len(c1)
     c2_len = len(c2)
@@ -57,18 +55,16 @@ def rand_fill_shorter(
         (c1, c2, c1_len, c2_len) if c1_len < c2_len else (c2, c1, c2_len, c1_len)
     )
 
-    filled_shorter, rng = rand_fill_to_n(shorter, fill_val, n=longer_len, rng=rng, inplace=inplace)  # type: ignore
+    filled_shorter, rng = rand_fill_to_n(shorter, fill_val, n=longer_len, rng=rng)  # type: ignore
 
     return filled_shorter, longer, rng
 
 
 def rand_insert_to_filled(
-    seq: list[T], v: T, rng: Rng, fillval: T, inplace: bool = False
+    seq: list[T], v: T, rng: Rng, fillval: T
 ) -> tuple[list[T], Rng]:
     ix: int = rng.integers(len(seq))
     if seq[ix] == fillval:
-        if not inplace:
-            seq = [*seq]
         seq[ix] = v
         return seq, rng
     fv_to_right_ix = next((i for i, val in enumerate(seq[ix:]) if val == fillval), None)
@@ -90,8 +86,6 @@ def rand_insert_to_filled(
     else:
         # no fillvalues
         return [*seq[:ix], v, *seq[ix + 1 :]], rng
-    if not inplace:
-        seq = [*seq]
     if copy_left:
         seq[fv_to_left_ix:ix] = seq[fv_to_left_ix + 1 : ix + 1]  # type: ignore
         seq[ix] = v
@@ -105,7 +99,6 @@ def rand_del_from_filled(
     seq: list[T],
     rng: Rng,
     fillval: T,
-    inplace: bool = False,
     shorten: bool = False,
     ommited_vals: Optional[Iterable[T]] = None,
 ) -> tuple[list[T], Rng]:
@@ -116,12 +109,8 @@ def rand_del_from_filled(
 
     if ommited_vals is None:
         ommited_vals = ()
-    if not inplace:
-        seq = [*seq]
     del_ixs = [i for i, x in enumerate(seq) if x != fillval and x not in ommited_vals]
     if not del_ixs:
-        if inplace:
-            return seq, rng
         return [*seq], rng
     del_ix = del_ixs[rng.integers(len(del_ixs))]
     if shorten:

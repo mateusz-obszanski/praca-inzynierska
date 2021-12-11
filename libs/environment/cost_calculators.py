@@ -121,7 +121,9 @@ def cost_calc_irp(
 ) -> float:
     assert len(vx_seq) == len(demands)
     rewards = (
-        0 if d in ini_and_dummy_vxs else max(d, sum(quantities[i] for vx in vx_seq if vx == i))
+        0
+        if d in ini_and_dummy_vxs
+        else max(d, sum(quantities[i] for vx in vx_seq if vx == i))
         for i, d in enumerate(demands)
     )
     return w1 * cost_calc_vrp(

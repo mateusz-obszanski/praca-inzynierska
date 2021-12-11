@@ -4,7 +4,6 @@ New population generators.
 
 
 from dataclasses import dataclass
-from collections.abc import Iterator
 from typing import Sequence, TypeVar
 import more_itertools as mit
 

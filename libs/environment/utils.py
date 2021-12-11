@@ -1,7 +1,7 @@
 import math
-from typing import Generator, Optional, Sequence, TypeVar, Union
+from collections.abc import Sequence, Iterable
+from typing import Generator, Optional, TypeVar, Union
 import itertools as it
-import operator as op
 
 import more_itertools as mit
 import numpy as np
@@ -180,7 +180,7 @@ def travel_times(
 
 
 def find_invalid_transitions(
-    solution: list[int], cost_mx: np.ndarray, forbidden_val: float = -1
+    solution: Iterable[int], cost_mx: np.ndarray, forbidden_val: float = -1
 ) -> list[tuple[tuple[int, int], tuple[int, int]]]:
     """
     Returns list of tuples ((a, b), (index of a in solution, index of b in solution)).
