@@ -50,7 +50,7 @@ def mutate_insert(
     fillvals: np.ndarray = c == fillval
     repl_marks: np.ndarray = fillvals & marks
     choice_pool: np.ndarray = np.fromiter(
-        x for x in range(*rand_range) if x not in ini_and_dummy_vxs
+        (x for x in range(*rand_range) if x not in ini_and_dummy_vxs), dtype=np.int64
     )
     v_inplace_fv: np.ndarray = rng.choice(
         choice_pool, size=np.count_nonzero(repl_marks)
@@ -85,7 +85,7 @@ def mutate_insert_irp(
     fillvals: np.ndarray = c[:, 0] == fillval
     repl_marks: np.ndarray = fillvals & marks
     vx_choice_pool: np.ndarray = np.fromiter(
-        x for x in range(*rand_vx_range) if x not in ini_and_dummy_vxs
+        (x for x in range(*rand_vx_range) if x not in ini_and_dummy_vxs), dtype=np.int64
     )
     v_inplace_fv: np.ndarray = rng.choice(
         vx_choice_pool, size=np.count_nonzero(repl_marks)

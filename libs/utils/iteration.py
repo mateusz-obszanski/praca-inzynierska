@@ -41,22 +41,21 @@ def chunkify_randomly(a: list[T], n: int, rng: Rng) -> tuple[list[list[T]], Rng]
     """
 
     ix_num = len(a)
-    split_ixs, rng = random_chunk_range_indices(a, n, rng)
+    split_ixs, rng = random_chunk_range_indices(ix_num, n, rng)
 
     chunks = [a[i:j] for i, j in mit.windowed(mit.value_chain(0, split_ixs, ix_num), 2)]
 
     return chunks, rng
 
 
-def random_chunk_range_indices(a: list, n: int, rng: Rng) -> tuple[list[int], Rng]:
+def random_chunk_range_indices(it_len: int, n: int, rng: Rng) -> tuple[list[int], Rng]:
     """
     Returns indices for splitting `a` into `n` nonempty chunks. If it is impossible,
     returns indices for chunkifying into smaller number of chunks.
     """
 
-    ix_num = len(a)
     split_ix_buffer: deque[int] = deque()
-    ix_pool = set(range(1, ix_num - 1))
+    ix_pool = set(range(1, it_len - 1))
 
     # n - 1 split indices
     for _ in range(n - 1):
