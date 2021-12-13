@@ -11,13 +11,13 @@ Rng = TypeVar("Rng", bound=np.random.Generator)
 
 def probabilities_by_value(values: Sequence[float]) -> list[float]:
     """
-    The higher the value, the bigger its share.
+    The higher the value, the bigger its share. Values have to be positive.
     """
 
     probabilities = np.array(values, dtype=np.float64)
     probabilities /= probabilities.sum()
 
-    return probabilities.astype(float).astype(float).tolist()
+    return probabilities.astype(float).tolist()
 
 
 def randomly_chunkify(

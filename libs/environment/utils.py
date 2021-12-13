@@ -193,27 +193,27 @@ def find_invalid_transitions(
 
 
 def check_transition(
-    a: int, b: int, cost_mx: np.ndarray, forbidden_val: float = -1
+    a: int, b: int, dist_mx: np.ndarray, forbidden_val: float = -1
 ) -> bool:
-    cost = cost_mx[a, b]
+    cost = dist_mx[a, b]
     return math.isfinite(cost) and cost != forbidden_val
 
 
 def check_transitions(
     seq: Sequence[int],
-    cost_mx: np.ndarray,
+    dist_mx: np.ndarray,
     forbid_val: float = -1,
 ) -> bool:
-    return all(check_transitions_iter(seq, cost_mx, forbid_val))
+    return all(check_transitions_iter(seq, dist_mx, forbid_val))
 
 
 def check_transitions_iter(
     seq: Sequence[int],
-    cost_mx: np.ndarray,
+    dist_mx: np.ndarray,
     forbid_val: float = -1,
 ) -> Generator[bool, None, None]:
     return (
-        check_transition(i, j, cost_mx, forbid_val) for i, j in mit.windowed(seq, n=2)  # type: ignore
+        check_transition(i, j, dist_mx, forbid_val) for i, j in mit.windowed(seq, n=2)  # type: ignore
     )
 
 

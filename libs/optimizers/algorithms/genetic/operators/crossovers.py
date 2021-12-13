@@ -21,6 +21,16 @@ class Crossover(Protocol):
         ...
 
 
+class CrossoverNDArray(Protocol):
+    def __call__(
+        self, p1: np.ndarray, p2: np.ndarray, rng: Rng, *args, **kwargs
+    ) -> tuple[np.ndarray, np.ndarray, Rng]:
+        """
+        Assumes that `p1` and `p2` have the same length.
+        """
+        ...
+
+
 def crossover(p1: list[T], p2: list[T], rng: Rng) -> tuple[list[T], list[T], Rng]:
     """
     Crossover with locus drawn from uniform distribution (excluding ends).

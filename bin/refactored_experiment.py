@@ -11,69 +11,193 @@
 # TODO IRP run
 
 from dataclasses import dataclass, fields
-from typing import Any, Generator, Optional, TypeVar, TypedDict, Union
+from typing import Any, Callable, Generator, Optional, TypeVar, TypedDict, Union
+from collections.abc import Iterable, Sequence
 from pathlib import Path
 import yaml
 import pandas as pd
 import json
 import pickle
+import itertools as it
 
 from marshmallow import Schema, ValidationError
 import numpy as np
 
+from libs.optimizers.algorithms.genetic.population.natural_selection import (
+    NaturalSelector,
+    replace_invalid_offspring,
+)
+
 
 from ..libs.solution import SolutionTSP
-from ..libs.environment.cost_calculators import CostGenCreator, CostT, cost_gen_tsp
-from ..libs.optimizers.algorithms.genetic.population import Population, PopulationTSP
-from ..libs.optimizers.algorithms.genetic.population.generators import (
-    PopulationGenerationData,
-    generate_population,
-)
-from ..libs.optimizers.algorithms.genetic.population.population_selectors import (
-    PopulationSelector,
-    select_population_with_probability,
+from ..libs.environment.cost_calculators import (
+    CostCalculator,
+    CostGenCreator,
+    CostT,
+    DistMx,
+    DynCosts,
+    cost_gen_tsp,
 )
 from ..libs.optimizers.algorithms.genetic.population.parent_selectors import (
+    ParentSelector,
     ParentSelectorDeprecated,
     select_best_parents_with_probability,
 )
 from ..libs.optimizers.algorithms.genetic.operators.fixers import Fixer
 from ..libs.optimizers.algorithms.genetic.operators.mutations import Mutator
-from ..libs.optimizers.algorithms.genetic.operators.crossovers import Crossover
+from ..libs.optimizers.algorithms.genetic.operators.crossovers import (
+    Crossover,
+    CrossoverNDArray,
+)
 from ..libs.schemas import ExperimentTSPSchema
 from ..libs.schemas.experiment_tsp import ExperimentConfigTSP
 
 
+@dataclass(frozen=True)
+class OffspringGenerationData:
+    costs: list[CostT]
+    no_of_fix_failures: int
+    mutation_p: dict[Mutator, float]
+    crossover_inv_p: Optional[float] = None
+
+
+Chromosome = np.ndarray
+Population = list[Chromosome]
 BestSolution = SolutionTSP
 BestCost = CostT
-Rng = TypeVar("Rng", bound=np.random.Generator)
-StepperTSP = Generator[tuple[Population, PopulationGenerationData, Rng], None, None]
+Rng = np.random.Generator
+StepperTSP = Generator[tuple[Population, OffspringGenerationData, Rng], None, None]
+CostMx = np.ndarray
+InitialVx = int
+ForbiddenVal = float
+
+
+def apply_mutators(
+    c: np.ndarray,
+    mutators: Iterable[Mutator],
+    mut_ps: dict[Mutator, float],
+    mut_kwargs: Iterable[dict[str, Any]],
+    rng: Rng,
+) -> tuple[np.ndarray, Rng]:
+    for m, kwds in zip(mutators, mut_kwargs):
+        c, rng = m(c, mut_ps[m], rng, **kwds)
+    return c, rng
 
 
 def genetic_tsp_gen(
-    population: PopulationTSP,
-    cost_mx: np.ndarray,
-    parent_selector: ParentSelectorDeprecated,
-    population_selector: PopulationSelector,
-    crossover: Crossover,
-    chromosome_fixer: Fixer,
+    population: Population,
+    dyn_costs: DynCosts,
+    dist_mx: DistMx,
+    parent_selector: ParentSelector,
+    crossover: CrossoverNDArray,
     mutators: list[Mutator],
-    invalidity_weight: float,
-    error_weight: float,
-    cost_weight: float,
-    cost_gen: CostGenCreator,
-    rng: np.random.Generator,
+    fixer: Fixer,
+    natural_selector: Optional[NaturalSelector],
+    cost_calc: CostCalculator,
+    checker: Callable[[np.ndarray, DistMx, InitialVx, ForbiddenVal], bool],
+    mut_ps: dict[Mutator, float],
+    crossover_kwargs: dict[str, Any],
+    mut_kwargs: list[dict[str, Any]],
+    initial_vx: int,
+    salesman_v: float,
+    fix_max_add_iters: int,
+    fix_max_retries: int,
+    rng: Rng,
 ) -> StepperTSP:
+    """
+    For the first time yields initial population, its data and rng
+
+    If `natural_selector` is `None`, then offspring becomes the next generation.
+    """
+
+    # [(mx, exp_t)] -> (mx, exp_t) -> mx -> mx[0, 0]
+    forbidden_val = dyn_costs[0][0][0, 0]
+    fix_statuses = [checker(c, dist_mx, initial_vx, forbidden_val) for c in population]
+    if any(not valid for valid in fix_statuses):
+        inv_ixs = [i for i, success in enumerate(fix_statuses) if not success]
+        raise InitialPopInvalidError("some initial individuals vere not valid", inv_ixs)
+    costs = [
+        cost_calc(
+            [vx for vx in c],
+            dyn_costs,
+            dist_mx,
+            salesman_v,
+            forbidden_val=forbidden_val,
+        )
+        for c in population
+    ]
+    cross_inv_p = crossover_kwargs.get("inversion_p")
+    no_of_failures = sum(not success for success in fix_statuses)
+    initial_data = OffspringGenerationData(costs, no_of_failures, mut_ps, cross_inv_p)
+    yield population, initial_data, rng
     while True:
-        parents = parent_selector(population, costs)
+        parents, parent_costs, rng = parent_selector(population, costs, rng)
+        offspring = list(
+            it.chain.from_iterable(
+                crossover(p1, p2, rng, **crossover_kwargs)[:-1] for p1, p2 in parents
+            )
+        )
+        mutated_offspring = [
+            apply_mutators(c, mutators, mut_ps, mut_kwargs, rng)[0] for c in offspring
+        ]
+        fixed_results = [
+            fixer(c, dist_mx, rng, forbidden_val, fix_max_add_iters, fix_max_retries)
+            for c in mutated_offspring
+        ]
+        fixed_offspring = [r[0] for r in fixed_results]
+        fix_statuses = [r[1] for r in fixed_results]
+        checked_offspring = replace_invalid_offspring(
+            parents, fixed_offspring, parent_costs, fix_statuses
+        )
+        if natural_selector is not None:
+            offspring_costs = [
+                cost_calc(
+                    [vx for vx in c],
+                    dyn_costs,
+                    dist_mx,
+                    salesman_v,
+                    forbidden_val=forbidden_val,
+                )
+                for c in checked_offspring
+            ]
+            flattened_parents = list(it.chain.from_iterable(parents))
+            next_gen, next_gen_costs, rng = natural_selector(
+                flattened_parents, checked_offspring, parent_costs, offspring_costs, rng
+            )
+        else:
+            next_gen = checked_offspring
+            next_gen_costs = [
+                cost_calc(
+                    [vx for vx in c],
+                    dyn_costs,
+                    dist_mx,
+                    salesman_v,
+                    forbidden_val=forbidden_val,
+                )
+                for c in next_gen
+            ]
+        no_of_failures = sum(not success for success in fix_statuses)
+        generation_data = OffspringGenerationData(
+            next_gen_costs, no_of_failures, mut_ps, cross_inv_p
+        )
+        yield next_gen, generation_data, rng
 
-        yield new_population, generation_data, rng  # type: ignore
+        parents = next_gen
+        costs = next_gen_costs
 
 
-class NoExtensionError:
+class NoExtensionError(Exception):
     """
     Raised when no extension in path present but is required.
     """
+
+
+class ExpError(Exception):
+    ...
+
+
+class InitialPopInvalidError(ExpError):
+    ...
 
 
 _FILE_READER = {

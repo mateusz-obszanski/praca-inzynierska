@@ -54,7 +54,7 @@ class Fixer(Protocol):
     def __call__(
         self,
         chromosome: Chromosome,
-        cost_mx: np.ndarray,
+        dist_mx: np.ndarray,
         rng: Rng,
         forbidden_val: float,
         max_add_iters: int = sys.maxsize,
@@ -67,7 +67,7 @@ class Fixer(Protocol):
 
 def fix_tsp(
     chromosome: list[int],
-    cost_mx: np.ndarray,
+    dist_mx: np.ndarray,
     initial_vx: int,
     forbidden_val: float,
     max_add_iters: int = sys.maxsize,
@@ -83,7 +83,7 @@ def fix_tsp(
     while not success and retries < max_retries and iter_n < max_add_iters:
         chromosome, success, iter_n = __fix_tsp(
             chromosome,
-            cost_mx,
+            dist_mx,
             initial_vx,
             forbidden_val,
             max_add_iters,
@@ -95,7 +95,7 @@ def fix_tsp(
                 return chromosome, success
             rev_chromosome, success, iter_n = __fix_tsp(
                 list(reversed(chromosome)),
-                cost_mx,
+                dist_mx,
                 initial_vx,
                 forbidden_val,
                 max_add_iters,
@@ -108,7 +108,7 @@ def fix_tsp(
 
 def __fix_tsp(
     chromosome: list[int],
-    cost_mx: np.ndarray,
+    dist_mx: np.ndarray,
     initial_vx: int,
     forbidden_val: float,
     max_add_iters: int,
@@ -130,7 +130,7 @@ def __fix_tsp(
         if len(occ) > 1 and vx != initial_vx
         # ^^ initial vx should appear at the beginning and the end
     }
-    forbidden_transitions = find_invalid_transitions(chromosome, cost_mx, forbidden_val)
+    forbidden_transitions = find_invalid_transitions(chromosome, dist_mx, forbidden_val)
     inv_dests = [ft[0][1] for ft in forbidden_transitions]
     inv_dest_ixs = [ft[1][1] for ft in forbidden_transitions]
     mult_vxs = [*mult_occ_map.keys()]
@@ -138,7 +138,7 @@ def __fix_tsp(
     mistake_ixs = sorted(
         set(it.chain(inv_dest_ixs, it.chain.from_iterable(mult_occ_map.values())))
     )
-    all_vxs = set(range(cost_mx.shape[0]))
+    all_vxs = set(range(dist_mx.shape[0]))
     used_vxs = set(chromosome)
     unused_vxs = all_vxs - used_vxs
     alts = tuple(set(it.chain(mult_vxs, inv_dests, unused_vxs)))
@@ -157,13 +157,13 @@ def __fix_tsp(
         unused_alts = (a for a in alts if a not in current_already_used_alts)
         prev_vx_ix = mistake_ixs[mistake_ix] - 1
         prev_vx = chromosome[prev_vx_ix]
-        mistake_alts = sorted(unused_alts, key=lambda dest: cost_mx[prev_vx, dest])
+        mistake_alts = sorted(unused_alts, key=lambda dest: dist_mx[prev_vx, dest])
         # select next valid alt
         valid_alt = next(
             (
                 alt
                 for alt in mistake_alts
-                if check_transition(prev_vx, alt, cost_mx, forbidden_val)
+                if check_transition(prev_vx, alt, dist_mx, forbidden_val)
                 and alt not in already_used_alts  # avoids vertex repetition
             ),
             None,
@@ -185,7 +185,7 @@ def __fix_tsp(
 
     return __fix_tsp_2nd_stage(
         chromosome,
-        cost_mx,
+        dist_mx,
         forbidden_val,
         initial_vx,
         max_iter_n,
@@ -196,7 +196,7 @@ def __fix_tsp(
 
 def __fix_tsp_2nd_stage(
     chromosome: list[int],
-    cost_mx: np.ndarray,
+    dist_mx: np.ndarray,
     forbidden_val: float,
     initial_vx: int,
     max_iter_n: int,
@@ -212,7 +212,7 @@ def __fix_tsp_2nd_stage(
     Returns chromosome, fix status flag and end iter.
     """
 
-    invalid_transitions = find_invalid_transitions(chromosome, cost_mx, forbidden_val)
+    invalid_transitions = find_invalid_transitions(chromosome, dist_mx, forbidden_val)
     if not invalid_transitions:
         return chromosome, True, current_iter_n
     inv_target_chromosome_ixs = [t[1][1] for t in invalid_transitions]
@@ -259,7 +259,7 @@ def __fix_tsp_2nd_stage(
         all_alternative_ixs_at_mistake_ix = __get_sorted_swap_alternative_ixs(
             chromosome,
             valid_vx_ixs,
-            cost_mx,
+            dist_mx,
             current_mistake_chromosome_ix,
             forbidden_val=forbidden_val,
         )
@@ -294,7 +294,7 @@ def __fix_tsp_2nd_stage(
         already_used_alts_at_mistake_ix[mistake_ix].append(valid_alt_ix)
         mistake_ix += 1
 
-    fix_status = checker(chromosome, cost_mx, initial_vx, forbidden_val)
+    fix_status = checker(chromosome, dist_mx, initial_vx, forbidden_val)
     return chromosome, fix_status, current_iter_n
 
 
@@ -337,7 +337,7 @@ def __get_sorted_swap_alternative_ixs(
 
 def fix_sdvrp(
     chromosome: list[int],
-    cost_mx: np.ndarray,
+    dist_mx: np.ndarray,
     initial_vx: int,
     forbidden_val: float,
     max_add_iters: int = sys.maxsize,
@@ -353,7 +353,7 @@ def fix_sdvrp(
     while not success and retries < max_retries and iter_n < max_add_iters:
         chromosome, success, iter_n = __fix_sdvrp(
             chromosome,
-            cost_mx,
+            dist_mx,
             initial_vx,
             forbidden_val,
             max_add_iters,
@@ -365,7 +365,7 @@ def fix_sdvrp(
                 return chromosome, success
             rev_chromosome, success, iter_n = __fix_sdvrp(
                 list(reversed(chromosome)),
-                cost_mx,
+                dist_mx,
                 initial_vx,
                 forbidden_val,
                 max_add_iters,
@@ -378,7 +378,7 @@ def fix_sdvrp(
 
 def __fix_sdvrp(
     chromosome: list[int],
-    cost_mx: np.ndarray,
+    dist_mx: np.ndarray,
     initial_vx: int,
     forbidden_val: float,
     max_add_iters: int,
@@ -393,11 +393,11 @@ def __fix_sdvrp(
         chromosome[0] = initial_vx
     if chromosome[-1] != initial_vx:
         chromosome[-1] = initial_vx
-    forbidden_transitions = find_invalid_transitions(chromosome, cost_mx, forbidden_val)
+    forbidden_transitions = find_invalid_transitions(chromosome, dist_mx, forbidden_val)
     inv_dests = (ft[0][1] for ft in forbidden_transitions)
     mistake_ixs = tuple(ft[1][1] for ft in forbidden_transitions)
     # mistakes - invalid destinations and multiple-occuring vertices
-    all_vxs = set(range(cost_mx.shape[0]))
+    all_vxs = set(range(dist_mx.shape[0]))
     used_vxs = set(chromosome)
     unused_vxs = all_vxs - used_vxs
     alts = tuple(set(it.chain(inv_dests, unused_vxs)))
@@ -416,13 +416,13 @@ def __fix_sdvrp(
         unused_alts = (a for a in alts if a not in current_already_used_alts)
         prev_vx_ix = mistake_ixs[mistake_ix] - 1
         prev_vx = chromosome[prev_vx_ix]
-        mistake_alts = sorted(unused_alts, key=lambda dest: cost_mx[prev_vx, dest])
+        mistake_alts = sorted(unused_alts, key=lambda dest: dist_mx[prev_vx, dest])
         # select next valid alt
         valid_alt = next(
             (
                 alt
                 for alt in mistake_alts
-                if check_transition(prev_vx, alt, cost_mx, forbidden_val)
+                if check_transition(prev_vx, alt, dist_mx, forbidden_val)
                 and alt not in already_used_alts  # avoids vertex repetition
             ),
             None,
@@ -447,13 +447,13 @@ def __fix_sdvrp(
     ] = lambda c, mx, _, fv: check_transitions(c, mx, fv)
 
     return __fix_tsp_2nd_stage(
-        chromosome, cost_mx, forbidden_val, initial_vx, max_iter_n, iter_n, checker
+        chromosome, dist_mx, forbidden_val, initial_vx, max_iter_n, iter_n, checker
     )
 
 
 def fix_irp(
     chromosome: np.ndarray,
-    cost_mx: np.ndarray,
+    dist_mx: np.ndarray,
     initial_vx: int,
     forbidden_val: float,
     max_add_iters: int = sys.maxsize,
@@ -472,7 +472,7 @@ def fix_irp(
     while not success and retries < max_retries and iter_n < max_add_iters:
         chromosome, success, iter_n = __fix_irp(
             chromosome,
-            cost_mx,
+            dist_mx,
             initial_vx,
             forbidden_val,
             max_add_iters,
@@ -485,7 +485,7 @@ def fix_irp(
                 return chromosome, success
             rev_chromosome, success, iter_n = __fix_irp(
                 np.flipud(chromosome),
-                cost_mx,
+                dist_mx,
                 initial_vx,
                 forbidden_val,
                 max_add_iters,
@@ -499,7 +499,7 @@ def fix_irp(
 
 def __fix_irp(
     chromosome: np.ndarray,
-    cost_mx: np.ndarray,
+    dist_mx: np.ndarray,
     initial_vx: int,
     forbidden_val: float,
     max_add_iters: int,
@@ -521,11 +521,11 @@ def __fix_irp(
     if vx_seq[0] != initial_vx:
         chromosome[-1, 0] = initial_vx
         vx_seq[0] = initial_vx
-    forbidden_transitions = find_invalid_transitions(vx_seq, cost_mx, forbidden_val)
+    forbidden_transitions = find_invalid_transitions(vx_seq, dist_mx, forbidden_val)
     inv_dests = (ft[0][1] for ft in forbidden_transitions)
     mistake_ixs = tuple(ft[1][1] for ft in forbidden_transitions)
     # mistakes - invalid destinations and multiple-occuring vertices
-    all_vxs = set(range(cost_mx.shape[0]))
+    all_vxs = set(range(dist_mx.shape[0]))
     used_vxs = set(vx_seq)
     unused_vxs = all_vxs - used_vxs
     alt_vxs = tuple(set(it.chain(inv_dests, unused_vxs)))
@@ -544,13 +544,13 @@ def __fix_irp(
         unused_alts = (a for a in alt_vxs if a not in current_already_used_alts)
         prev_vx_ix = mistake_ixs[mistake_ix] - 1
         prev_vx = chromosome[prev_vx_ix, 0]
-        mistake_alts = sorted(unused_alts, key=lambda dest: cost_mx[prev_vx, dest])
+        mistake_alts = sorted(unused_alts, key=lambda dest: dist_mx[prev_vx, dest])
         # select next valid alt
         valid_alt = next(
             (
                 alt
                 for alt in mistake_alts
-                if check_transition(prev_vx, alt, cost_mx, forbidden_val)
+                if check_transition(prev_vx, alt, dist_mx, forbidden_val)
                 and alt not in already_used_alts  # avoids vertex repetition
             ),
             None,
@@ -576,7 +576,7 @@ def __fix_irp(
 
     return __fix_irp_2nd_stage(
         chromosome,
-        cost_mx,
+        dist_mx,
         forbidden_val,
         initial_vx,
         max_iter_n,
@@ -588,7 +588,7 @@ def __fix_irp(
 
 def __fix_irp_2nd_stage(
     chromosome: np.ndarray,
-    cost_mx: np.ndarray,
+    dist_mx: np.ndarray,
     forbidden_val: float,
     initial_vx: int,
     max_iter_n: int,
@@ -606,7 +606,7 @@ def __fix_irp_2nd_stage(
     """
 
     vx_seq = [x[0] for x in chromosome]
-    invalid_transitions = find_invalid_transitions(vx_seq, cost_mx, forbidden_val)
+    invalid_transitions = find_invalid_transitions(vx_seq, dist_mx, forbidden_val)
     if not invalid_transitions:
         return chromosome, True, current_iter_n
     inv_target_chromosome_ixs = [t[1][1] for t in invalid_transitions]
@@ -653,7 +653,7 @@ def __fix_irp_2nd_stage(
         all_alternative_ixs_at_mistake_ix = __get_sorted_swap_alternative_ixs(
             vx_seq,
             valid_vx_ixs,
-            cost_mx,
+            dist_mx,
             current_mistake_chromosome_ix,
             forbidden_val=forbidden_val,
         )
@@ -690,7 +690,7 @@ def __fix_irp_2nd_stage(
         already_used_alts_at_mistake_ix[mistake_ix].append(valid_alt_ix)
         mistake_ix += 1
 
-    fix_status = checker(vx_seq, cost_mx, initial_vx, forbidden_val)
+    fix_status = checker(vx_seq, dist_mx, initial_vx, forbidden_val)
     return chromosome, fix_status, current_iter_n
 
 
@@ -873,10 +873,10 @@ def check_transitions_deprecated(
 
 def check_chromosome_tsp(
     chromosome: Sequence[int],
-    cost_mx: np.ndarray,
+    dist_mx: np.ndarray,
     initial_vx: int = 0,
     forbidden_val: float = -1,
 ) -> bool:
     return check_transitions(
-        chromosome, cost_mx, forbid_val=forbidden_val
+        chromosome, dist_mx, forbid_val=forbidden_val
     ) and check_doubles(chromosome, initial_vx)

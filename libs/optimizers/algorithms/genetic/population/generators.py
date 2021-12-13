@@ -10,7 +10,6 @@ import more_itertools as mit
 import numpy as np
 
 from .chromosomes import ChromosomeTSP
-from .population_selectors import PopulationSelector
 from .parent_selectors import ParentSelectorDeprecated
 from libs.optimizers.algorithms.genetic.operators.mutations import Mutator
 from libs.optimizers.algorithms.genetic.operators.crossovers import Crossover
