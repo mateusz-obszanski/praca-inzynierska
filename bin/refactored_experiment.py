@@ -27,6 +27,8 @@ from libs.optimizers.algorithms.genetic.population.natural_selection import (
     NaturalSelector,
     replace_invalid_offspring,
 )
+from libs.schemas.exp_funcs_map import ExperimentType
+from libs.schemas.experiment_base import ExperimentBase
 
 
 from ..libs.solution import SolutionTSP
@@ -61,12 +63,12 @@ class OffspringGenerationData:
     crossover_inv_p: Optional[float] = None
 
 
-Chromosome = np.ndarray
+Chromosome = Union[np.ndarray, tuple[np.ndarray, np.ndarray]]
 Population = list[Chromosome]
 BestSolution = SolutionTSP
 BestCost = CostT
 Rng = np.random.Generator
-StepperTSP = Generator[tuple[Population, OffspringGenerationData, Rng], None, None]
+ExpStepper = Generator[tuple[Population, OffspringGenerationData, Rng], None, None]
 CostMx = np.ndarray
 InitialVx = int
 ForbiddenVal = float
@@ -84,7 +86,7 @@ def apply_mutators(
     return c, rng
 
 
-def genetic_tsp_gen(
+def genetic_stepper(
     population: Population,
     dyn_costs: DynCosts,
     dist_mx: DistMx,
@@ -98,12 +100,14 @@ def genetic_tsp_gen(
     mut_ps: dict[Mutator, float],
     crossover_kwargs: dict[str, Any],
     mut_kwargs: list[dict[str, Any]],
+    cost_calc_kwargs: dict[str, Any],
+    fixer_kwargs: dict[str, Any],
     initial_vx: int,
     salesman_v: float,
     fix_max_add_iters: int,
     fix_max_retries: int,
     rng: Rng,
-) -> StepperTSP:
+) -> ExpStepper:
     """
     For the first time yields initial population, its data and rng
 
@@ -112,7 +116,12 @@ def genetic_tsp_gen(
 
     # [(mx, exp_t)] -> (mx, exp_t) -> mx -> mx[0, 0]
     forbidden_val = dyn_costs[0][0][0, 0]
-    fix_statuses = [checker(c, dist_mx, initial_vx, forbidden_val) for c in population]
+    if isinstance(population, tuple):
+        _population: list[tuple[np.ndarray, np.ndarray]] = population[0]  # type: ignore
+
+    else:
+        _population: list[np.ndarray] = population  # type: ignore
+    fix_statuses = [checker(c, dist_mx, initial_vx, forbidden_val) for c in _population]
     if any(not valid for valid in fix_statuses):
         inv_ixs = [i for i, success in enumerate(fix_statuses) if not success]
         raise InitialPopInvalidError("some initial individuals vere not valid", inv_ixs)
@@ -123,15 +132,16 @@ def genetic_tsp_gen(
             dist_mx,
             salesman_v,
             forbidden_val=forbidden_val,
+            **cost_calc_kwargs,
         )
-        for c in population
+        for c in _population
     ]
     cross_inv_p = crossover_kwargs.get("inversion_p")
     no_of_failures = sum(not success for success in fix_statuses)
     initial_data = OffspringGenerationData(costs, no_of_failures, mut_ps, cross_inv_p)
-    yield population, initial_data, rng
+    yield _population, initial_data, rng  # type: ignore
     while True:
-        parents, parent_costs, rng = parent_selector(population, costs, rng)
+        parents, parent_costs, rng = parent_selector(_population, costs, rng)
         offspring = list(
             it.chain.from_iterable(
                 crossover(p1, p2, rng, **crossover_kwargs)[:-1] for p1, p2 in parents
@@ -141,7 +151,7 @@ def genetic_tsp_gen(
             apply_mutators(c, mutators, mut_ps, mut_kwargs, rng)[0] for c in offspring
         ]
         fixed_results = [
-            fixer(c, dist_mx, rng, forbidden_val, fix_max_add_iters, fix_max_retries)
+            fixer(c, dist_mx, rng, forbidden_val, fix_max_add_iters, fix_max_retries, **fixer_kwargs)
             for c in mutated_offspring
         ]
         fixed_offspring = [r[0] for r in fixed_results]
@@ -180,7 +190,7 @@ def genetic_tsp_gen(
         generation_data = OffspringGenerationData(
             next_gen_costs, no_of_failures, mut_ps, cross_inv_p
         )
-        yield next_gen, generation_data, rng
+        yield next_gen, generation_data, rng  # type: ignore
 
         parents = next_gen
         costs = next_gen_costs
@@ -220,10 +230,13 @@ def load_data(path: Union[str, Path]) -> Any:
         return reader(f)
 
 
-def get_experiment_tsp_config(path: Union[str, Path]) -> ExperimentConfigTSP:
+def get_experiment_tsp_config(exp_t: ExperimentType, path: Union[str, Path]) -> ExperimentBase:
+    schema_map = {
+        ExperimentType.TSP: ExperimentTSPSchema,
+    }
+    exp_schema = schema_map[exp_t]()
     with Path(path).open("r") as f:
         exp_data_to_validate = yaml.full_load(f)
-    exp_schema = ExperimentTSPSchema()
     exp_config_data: ExperimentConfigTSP = exp_schema.load(exp_data_to_validate)
     return exp_config_data
 
@@ -259,8 +272,17 @@ def configure_experiment_data(exp_conf: ExperimentConfigTSP) -> dict[str, Any]:
     return data
 
 
-def experiment_tsp(exp_conf_path: str, results_path: str):
+def experiment(exp_t: str, exp_conf_path: str, results_path: str):
     # TODO read fields from config file
     # TODO save config file and raw data to results
     # TODO export as CLI
-    exp_config = get_experiment_tsp_config(exp_conf_path)
+    _results_path = Path(results_path)
+    del results_path
+    _exp_t = ExperimentType[exp_t]
+    del exp_t
+    exp_config = get_experiment_tsp_config(_exp_t, exp_conf_path)
+    population: Population = [individual["vx_seq"] for individual in exp_config.initial_population]
+    stepper = genetic_stepper(
+        _population=population,
+        dyn_costs=exp_config.dyn_costs
+    )

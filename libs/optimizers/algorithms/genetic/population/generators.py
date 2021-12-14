@@ -2,6 +2,8 @@
 New population generators.
 """
 
+# TODO deprecate module
+
 
 from dataclasses import dataclass
 from typing import Sequence, TypeVar
