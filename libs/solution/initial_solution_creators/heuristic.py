@@ -45,11 +45,12 @@ def create_irp_sol_nn_sa(
         dyn_costs,
         ext_dist_mx,
         vehicle_speed,
+        initial_vx,
+        forbidden_val,
         ini_and_dummy_vxs,
         demands,
         w1,
         w2,
-        forbidden_val,
         _quantities.tolist(),
     )
     result = dual_annealing(cost_func, bounds, seed=rng)

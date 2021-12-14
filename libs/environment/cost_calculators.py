@@ -93,7 +93,9 @@ def cost_calc_tsp(
     all_vxs = range(len(distance_mx))
     if any(vx not in present_vxs for vx in all_vxs):
         return float("inf")
-    return cost_calc_core(vx_seq, dyn_costs, distance_mx, salesman_v, initial_vx, forbidden_val)
+    return cost_calc_core(
+        vx_seq, dyn_costs, distance_mx, salesman_v, initial_vx, forbidden_val
+    )
 
 
 def cost_calc_core(
@@ -166,6 +168,7 @@ def cost_calc_vrp(
         for ds in drone_seqs
     )
 
+
 def cost_calc_sdvrp_core(
     vx_seq: list[int],
     dyn_costs: DynCosts,
@@ -179,7 +182,9 @@ def cost_calc_sdvrp_core(
     # ^^ splits at 0, so the first and the last subroutes is empty
     drone_seqs = ((0, *sr, 0) for sr in drone_seqs[1:-1])
     return max(
-        cost_calc_core(ds, dyn_costs, distance_mx, salesman_v, initial_vx, forbidden_val)
+        cost_calc_core(
+            ds, dyn_costs, distance_mx, salesman_v, initial_vx, forbidden_val
+        )
         for ds in drone_seqs
     )
 
@@ -200,15 +205,19 @@ def cost_calc_sdvrp(
         0 if d in ini_and_dummy_vxs else max(d, sum(1 for vx in vx_seq if vx == i))
         for i, d in enumerate(demands)
     )
-    return w1 * cost_calc_sdvrp_core(
-        vx_seq,
-        dyn_costs,
-        distance_mx,
-        salesman_v,
-        initial_vx,
-        ini_and_dummy_vxs=ini_and_dummy_vxs,
-        forbidden_val=forbidden_val,
-    ) - w2 * sum(rewards)
+    return (
+        w1
+        * cost_calc_sdvrp_core(
+            vx_seq,
+            dyn_costs,
+            distance_mx,
+            salesman_v,
+            initial_vx,
+            ini_and_dummy_vxs=ini_and_dummy_vxs,
+            forbidden_val=forbidden_val,
+        )
+        - w2 * sum(rewards)
+    )
 
 
 def cost_calc_irp(
@@ -231,15 +240,19 @@ def cost_calc_irp(
         else max(d, sum(quantities[i] for vx in vx_seq if vx == i))
         for i, d in enumerate(demands)
     )
-    return w1 * cost_calc_sdvrp_core(
-        vx_seq,
-        dyn_costs,
-        distance_mx,
-        salesman_v,
-        initial_vx,
-        ini_and_dummy_vxs=ini_and_dummy_vxs,
-        forbidden_val=forbidden_val,
-    ) - w2 * sum(rewards)
+    return (
+        w1
+        * cost_calc_sdvrp_core(
+            vx_seq,
+            dyn_costs,
+            distance_mx,
+            salesman_v,
+            initial_vx,
+            ini_and_dummy_vxs=ini_and_dummy_vxs,
+            forbidden_val=forbidden_val,
+        )
+        - w2 * sum(rewards)
+    )
 
 
 class CostGenCreator(Protocol):

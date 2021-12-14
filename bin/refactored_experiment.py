@@ -151,7 +151,15 @@ def genetic_stepper(
             apply_mutators(c, mutators, mut_ps, mut_kwargs, rng)[0] for c in offspring
         ]
         fixed_results = [
-            fixer(c, dist_mx, rng, forbidden_val, fix_max_add_iters, fix_max_retries, **fixer_kwargs)
+            fixer(
+                c,
+                dist_mx,
+                rng,
+                forbidden_val,
+                fix_max_add_iters,
+                fix_max_retries,
+                **fixer_kwargs,
+            )
             for c in mutated_offspring
         ]
         fixed_offspring = [r[0] for r in fixed_results]
@@ -166,6 +174,7 @@ def genetic_stepper(
                     dyn_costs,
                     dist_mx,
                     salesman_v,
+                    initial_vx,
                     forbidden_val=forbidden_val,
                 )
                 for c in checked_offspring
@@ -182,6 +191,7 @@ def genetic_stepper(
                     dyn_costs,
                     dist_mx,
                     salesman_v,
+                    initial_vx,
                     forbidden_val=forbidden_val,
                 )
                 for c in next_gen
@@ -230,7 +240,9 @@ def load_data(path: Union[str, Path]) -> Any:
         return reader(f)
 
 
-def get_experiment_tsp_config(exp_t: ExperimentType, path: Union[str, Path]) -> ExperimentBase:
+def get_experiment_tsp_config(
+    exp_t: ExperimentType, path: Union[str, Path]
+) -> ExperimentBase:
     schema_map = {
         ExperimentType.TSP: ExperimentTSPSchema,
     }
@@ -281,8 +293,7 @@ def experiment(exp_t: str, exp_conf_path: str, results_path: str):
     _exp_t = ExperimentType[exp_t]
     del exp_t
     exp_config = get_experiment_tsp_config(_exp_t, exp_conf_path)
-    population: Population = [individual["vx_seq"] for individual in exp_config.initial_population]
-    stepper = genetic_stepper(
-        _population=population,
-        dyn_costs=exp_config.dyn_costs
-    )
+    population: Population = [
+        individual["vx_seq"] for individual in exp_config.initial_population
+    ]
+    stepper = genetic_stepper(_population=population, dyn_costs=exp_config.dyn_costs)
