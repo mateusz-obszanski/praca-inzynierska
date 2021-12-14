@@ -25,6 +25,7 @@ class CostCalculator(Protocol):
         dyn_costs: DynCosts,
         distance_mx: DistMx,
         salesman_v: float,
+        initial_vx: int,
         forbidden_val: float,
         *args,
         **kwargs,
@@ -85,13 +86,14 @@ def cost_calc_tsp(
     dyn_costs: DynCosts,
     distance_mx: DistMx,
     salesman_v: float,
+    initial_vx: int,
     forbidden_val: float,
 ) -> float:
     present_vxs = set(vx_seq)
     all_vxs = range(len(distance_mx))
     if any(vx not in present_vxs for vx in all_vxs):
         return float("inf")
-    return cost_calc_core(vx_seq, dyn_costs, distance_mx, salesman_v, forbidden_val)
+    return cost_calc_core(vx_seq, dyn_costs, distance_mx, salesman_v, initial_vx, forbidden_val)
 
 
 def cost_calc_core(
@@ -99,8 +101,11 @@ def cost_calc_core(
     dyn_costs: DynCosts,
     distance_mx: DistMx,
     salesman_v: float,
+    initial_vx: int,
     forbidden_val: float,
 ) -> float:
+    if initial_vx != vx_seq[0] != vx_seq[-1] != initial_vx:
+        return float("inf")
     total_t = 0
     vx_pair_iter: Iterator[tuple[int, int]] = mit.windowed(vx_seq, n=2)  # type: ignore
     try:
@@ -149,6 +154,7 @@ def cost_calc_vrp(
     dyn_costs: DynCosts,
     distance_mx: DistMx,
     salesman_v: float,
+    initial_vx: int,
     forbidden_val: float,
     ini_and_dummy_vxs: set[int],
 ) -> float:
@@ -156,7 +162,7 @@ def cost_calc_vrp(
     # ^^ splits at 0, so the first and the last subroutes is empty
     drone_seqs = ((0, *sr, 0) for sr in drone_seqs[1:-1])
     return max(
-        cost_calc_tsp(ds, dyn_costs, distance_mx, salesman_v, forbidden_val)
+        cost_calc_tsp(ds, dyn_costs, distance_mx, salesman_v, initial_vx, forbidden_val)
         for ds in drone_seqs
     )
 
@@ -165,6 +171,7 @@ def cost_calc_sdvrp_core(
     dyn_costs: DynCosts,
     distance_mx: DistMx,
     salesman_v: float,
+    initial_vx: int,
     forbidden_val: float,
     ini_and_dummy_vxs: set[int],
 ) -> float:
@@ -172,7 +179,7 @@ def cost_calc_sdvrp_core(
     # ^^ splits at 0, so the first and the last subroutes is empty
     drone_seqs = ((0, *sr, 0) for sr in drone_seqs[1:-1])
     return max(
-        cost_calc_core(ds, dyn_costs, distance_mx, salesman_v, forbidden_val)
+        cost_calc_core(ds, dyn_costs, distance_mx, salesman_v, initial_vx, forbidden_val)
         for ds in drone_seqs
     )
 
@@ -183,6 +190,7 @@ def cost_calc_sdvrp(
     distance_mx: DistMx,
     salesman_v: float,
     forbidden_val: float,
+    initial_vx: int,
     ini_and_dummy_vxs: set[int],
     demands: tuple[int],
     w1: float,
@@ -197,6 +205,7 @@ def cost_calc_sdvrp(
         dyn_costs,
         distance_mx,
         salesman_v,
+        initial_vx,
         ini_and_dummy_vxs=ini_and_dummy_vxs,
         forbidden_val=forbidden_val,
     ) - w2 * sum(rewards)
@@ -207,6 +216,7 @@ def cost_calc_irp(
     dyn_costs: DynCosts,
     distance_mx: DistMx,
     salesman_v: float,
+    initial_vx: int,
     forbidden_val: float,
     ini_and_dummy_vxs: set[int],
     demands: tuple[float],
@@ -226,6 +236,7 @@ def cost_calc_irp(
         dyn_costs,
         distance_mx,
         salesman_v,
+        initial_vx,
         ini_and_dummy_vxs=ini_and_dummy_vxs,
         forbidden_val=forbidden_val,
     ) - w2 * sum(rewards)
