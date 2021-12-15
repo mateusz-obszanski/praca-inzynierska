@@ -53,7 +53,9 @@ def create_vrp_sol_rand(
             salesmen_n,
             vx_n,
         )
-    vx_seq = [initial_vx] + list(set(range(vx_n)) - ini_and_dummy_vxs) + [initial_vx]
+    vx_seq_mid = list(set(range(vx_n)) - ini_and_dummy_vxs)
+    rng.shuffle(vx_seq_mid)
+    vx_seq = [initial_vx] + vx_seq_mid + [initial_vx]
     for dix, dvx in zip(dummy_vx_ixs, ini_and_dummy_vxs - {initial_vx}):
         vx_seq.insert(dix, dvx)
     return vx_seq, rng
@@ -82,9 +84,11 @@ def create_irp_sol_rand(
         regular_vx_division=regular_vx_division,
     )
     quantities: np.ndarray = rng.random(size=len(vx_seq))
-    dummy_ixs: np.ndarray = np.fromiter(vx in ini_and_dummy_vxs for vx in vx_seq)
+    dummy_ixs: np.ndarray = np.fromiter(
+        (vx in ini_and_dummy_vxs for vx in vx_seq), dtype=np.bool8
+    )
     quantities[dummy_ixs] = 0.0
-    quantities /= vehicle_volume / quantities.sum()
+    quantities *= vehicle_volume / quantities.sum()
     return vx_seq, quantities, rng
 
 

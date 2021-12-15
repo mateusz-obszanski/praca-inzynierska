@@ -127,7 +127,7 @@ def cost_calc_core(
         while True:
             dist_to_go = dist_v1_v2 - traversed_d
             # destination reaching expected time for current travel_time matrix
-            expected_end_t = dist_to_go / salesman_eff_v
+            expected_end_t = total_t + dist_to_go / salesman_eff_v
             if expected_end_t <= mx_exp_t:
                 traversed_d += dist_to_go
                 window_t += expected_end_t

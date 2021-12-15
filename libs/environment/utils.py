@@ -153,10 +153,10 @@ def effective_speed(speed: float, wind: np.ndarray) -> SpeedMx:
     return effective_speed
 
 
-def coords_grid(n: int) -> np.ndarray:
-    coord_range = list(range(n))
+def coords_grid(n: int, spacing: float = 1) -> np.ndarray:
+    coord_range = np.arange(0, n * spacing, spacing).tolist()
 
-    x = list(it.chain.from_iterable(it.repeat(i, n) for i in range(n)))
+    x = list(it.chain.from_iterable(it.repeat(cx, n) for cx in coord_range))
     y = list(it.chain.from_iterable(it.repeat(coord_range, n)))
 
     return np.stack((x, y), axis=1)

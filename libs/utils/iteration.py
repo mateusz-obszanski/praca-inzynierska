@@ -17,6 +17,21 @@ Chunk = list
 OrderedSplitVals = tuple
 
 
+def join_sequences(seqs: Sequence[Sequence[T1]], val: T2) -> list[Union[T1, T2]]:
+    seq_iter = iter(seqs)
+    try:
+        seq = next(seq_iter)
+        result = [*seq]
+    except StopIteration:
+        return []
+    while True:
+        try:
+            seq = next(seq_iter)
+        except StopIteration:
+            return result  # type: ignore
+        result.extend((val, *seq))  # type: ignore
+
+
 def split_list_mult(
     seq: list[T], split_vals: Container[T]
 ) -> tuple[tuple[Chunk[T], ...], OrderedSplitVals[T]]:
