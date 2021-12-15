@@ -33,7 +33,9 @@ def mutate_swap(c: np.ndarray, p: float, rng: Rng) -> tuple[np.ndarray, Rng]:
     return c, rng
 
 
-def mutate_swap_irp(c: np.ndarray, p: float, rng: Rng, quantities: np.ndarray) -> tuple[np.ndarray, np.ndarray, Rng]:
+def mutate_swap_irp(
+    c: np.ndarray, p: float, rng: Rng, quantities: np.ndarray
+) -> tuple[np.ndarray, np.ndarray, Rng]:
     """
     Shuffles `seq` on indices marked with probability `p`.
     """

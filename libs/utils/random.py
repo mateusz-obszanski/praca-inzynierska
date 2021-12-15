@@ -10,7 +10,9 @@ Rng = TypeVar("Rng", bound=np.random.Generator)
 SeqT = TypeVar("SeqT", bound=Sequence)
 
 
-def shuffle_ensure_change(a: SeqT, rng: Rng, max_iter: Optional[int] = None) -> tuple[SeqT, Rng]:
+def shuffle_ensure_change(
+    a: SeqT, rng: Rng, max_iter: Optional[int] = None
+) -> tuple[SeqT, Rng]:
     """
     Shuffles `a` but ensures that the result's order is change.
     """

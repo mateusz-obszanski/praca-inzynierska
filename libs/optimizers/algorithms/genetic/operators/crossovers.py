@@ -130,17 +130,13 @@ def crossover_k_loci_ndarray(
     p1: np.ndarray, p2: np.ndarray, rng: Rng, k: int
 ) -> tuple[np.ndarray, np.ndarray, Rng]:
     """
-    Assumes that `p1` and `p2` have the same length. 
+    Assumes that `p1` and `p2` have the same length.
     """
 
     c1_chunks, c2_chunks, rng = __chunkify_parents_ndarray(p1, p2, rng, k)
     c1_chunks = tuple(c1_chunks)
     c2_chunks = tuple(c2_chunks)
-    print(f"cross k loci {k = }\n\t{c1_chunks = }\n\t{c2_chunks = }")
-    c1, c2 = (
-        np.concatenate(cs)
-        for cs in (c1_chunks, c2_chunks)
-    )
+    c1, c2 = (np.concatenate(cs) for cs in (c1_chunks, c2_chunks))
 
     return c1, c2, rng
 
