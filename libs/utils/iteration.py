@@ -93,8 +93,6 @@ def iterator_alternating(a: Sequence[T1], b: Sequence[T2]) -> Iterator[Union[T1,
     result: [1, 6, 3, 8]
     """
 
-    assert len(a) == len(b)
-
     return (source[i] for i, source in enumerate(mit.take(len(a), it.cycle((a, b)))))
 
 

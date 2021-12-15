@@ -37,7 +37,7 @@ def crossover(p1: list[T], p2: list[T], rng: Rng) -> tuple[list[T], list[T], Rng
     Assumes that `p1` and `p2` have the same length.
     """
 
-    locus = rng.randint(1, len(p1) - 1)
+    locus = rng.integers(1, len(p1) - 1)
 
     c1 = p1[:locus] + p2[locus:]
     c2 = p2[:locus] + p1[locus:]
@@ -53,7 +53,7 @@ def crossover_ndarray(
     Assumes that `p1` and `p2` have the same length.
     """
 
-    locus = rng.randint(1, p1.shape[0] - 1)
+    locus = rng.integers(1, p1.shape[0] - 1)
 
     c1 = np.concatenate((p1[:locus], p2[locus:]))
     c2 = np.concatenate((p2[:locus], p1[locus:]))
@@ -70,7 +70,7 @@ def crossover_with_inversion(
     with probability `inversion_p`.
     """
 
-    locus = rng.randint(1, len(p1) - 1)
+    locus = rng.integers(1, len(p1) - 1)
 
     c1_chunks = (p1[:locus], p2[locus:])
     c2_chunks = (p2[:locus], p1[locus:])
@@ -98,7 +98,7 @@ def crossover_with_inversion_ndarray(
     with probability `inversion_p`.
     """
 
-    locus = rng.randint(1, p1.shape[0] - 1)
+    locus = rng.integers(1, p1.shape[0] - 1)
 
     c1_chunks = (p1[:locus], p2[locus:])
     c2_chunks = (p2[:locus], p1[locus:])
@@ -130,12 +130,15 @@ def crossover_k_loci_ndarray(
     p1: np.ndarray, p2: np.ndarray, rng: Rng, k: int
 ) -> tuple[np.ndarray, np.ndarray, Rng]:
     """
-    Assumes that `p1` and `p2` have the same length.
+    Assumes that `p1` and `p2` have the same length. 
     """
 
     c1_chunks, c2_chunks, rng = __chunkify_parents_ndarray(p1, p2, rng, k)
+    c1_chunks = tuple(c1_chunks)
+    c2_chunks = tuple(c2_chunks)
+    print(f"cross k loci {k = }\n\t{c1_chunks = }\n\t{c2_chunks = }")
     c1, c2 = (
-        np.concatenate(tuple(it.chain.from_iterable(cs)))
+        np.concatenate(cs)
         for cs in (c1_chunks, c2_chunks)
     )
 
@@ -212,7 +215,7 @@ def crossover_k_loci_poisson_ndarray(
     """
 
     k = 1 + rng.poisson(lam)
-    return crossover_k_loci_ndarray(p1, p2, k, rng)
+    return crossover_k_loci_ndarray(p1, p2, rng, k)
 
 
 def crossover_k_loci_poisson_with_inversion(
@@ -301,8 +304,9 @@ def __chunkify_parents_ndarray(
     p1: np.ndarray, p2: np.ndarray, rng: Rng, k: int
 ) -> tuple[Iterator[np.ndarray], Iterator[np.ndarray], Rng]:
     p_len = p1.shape[0]
-    ixs, rng = random_chunk_range_indices(p_len, k, rng)
-    ixs = it.chain((0,), ixs, (p_len,))
+    chunk_n = k + 1
+    ixs, rng = random_chunk_range_indices(p_len, chunk_n, rng)
+    ixs = (0, *ixs, p_len)
     p1_chunks, p2_chunks = (
         tuple(p[i:j] for i, j in mit.windowed(ixs, n=2)) for p in (p1, p2)
     )
@@ -324,9 +328,9 @@ def __reverse_chunks_with_prob(
 
 def __reverse_chunks_with_prob_ndarray(
     chunks: Sequence[np.ndarray], p: float, rng: Rng
-) -> tuple[Iterator[np.ndarray], Rng]:
+) -> tuple[list[np.ndarray], Rng]:
     do_reverse: Sequence[bool] = rng.random(size=len(chunks)) < p
-    return (
+    return [
         np.flip(chunk, axis=0) if do_reverse[i] else chunk
         for i, chunk in enumerate(chunks)
-    ), rng
+    ], rng

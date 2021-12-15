@@ -6,7 +6,7 @@ import itertools as it
 import more_itertools as mit
 
 from libs.utils.iteration import join_sequences
-from libs.utils.random import randomly_chunkify
+from libs.utils.random import randomly_chunkify, shuffle_ensure_change
 
 
 T = TypeVar("T")
@@ -27,10 +27,24 @@ def mutate_swap(c: np.ndarray, p: float, rng: Rng) -> tuple[np.ndarray, Rng]:
 
     marks = rng.random(size=c.shape[0]) < p
     marked_elems = c[marks]
-    rng.shuffle(marked_elems)
+    marked_elems, rng = shuffle_ensure_change(marked_elems, rng, max_iter=10)
     c[marks] = marked_elems
 
     return c, rng
+
+
+def mutate_swap_irp(c: np.ndarray, p: float, rng: Rng, quantities: np.ndarray) -> tuple[np.ndarray, np.ndarray, Rng]:
+    """
+    Shuffles `seq` on indices marked with probability `p`.
+    """
+
+    marks = rng.random(size=c.shape[0]) < p
+    mark_ixs = np.fromiter((i for i, m in enumerate(marks) if m), dtype=np.int64)
+    mark_ixs, rng = shuffle_ensure_change(mark_ixs, rng, max_iter=10)
+    c[marks] = c[mark_ixs]
+    quantities[marks] = quantities[mark_ixs]
+
+    return c, quantities, rng
 
 
 # def mutate_insert(
@@ -224,7 +238,7 @@ def mutate_shuffle_ranges(seq: Sequence[T], p: float, rng: Rng) -> tuple[list[T]
     """
 
     chunks, rng = randomly_chunkify(seq, p, rng)
-    rng.shuffle(chunks)
+    chunks, rng = shuffle_ensure_change(chunks, rng, max_iter=10)
 
     return list(it.chain.from_iterable(chunks)), rng
 

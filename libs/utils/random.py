@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import TypeVar
+from typing import Optional, TypeVar
 
 import more_itertools as mit
 import numpy as np
@@ -7,6 +7,25 @@ import numpy as np
 
 T = TypeVar("T")
 Rng = TypeVar("Rng", bound=np.random.Generator)
+SeqT = TypeVar("SeqT", bound=Sequence)
+
+
+def shuffle_ensure_change(a: SeqT, rng: Rng, max_iter: Optional[int] = None) -> tuple[SeqT, Rng]:
+    """
+    Shuffles `a` but ensures that the result's order is change.
+    """
+    not_changed = lambda _a: all(ia < ib for ia, ib in mit.windowed(a, n=2))  # type: ignore
+    if len(a) > 1:
+        rng.shuffle(a)
+        if max_iter is None:
+            while not_changed(a):  # type: ignore
+                rng.shuffle(a)
+        else:
+            for _ in range(max_iter):
+                if not not_changed(a):
+                    break
+                rng.shuffle(a)
+    return a, rng
 
 
 def probabilities_by_value(values: Sequence[float]) -> list[float]:
