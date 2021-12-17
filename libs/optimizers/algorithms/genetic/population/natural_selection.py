@@ -86,8 +86,8 @@ def select_population_with_probability(
         to_be_graded_len, p=probabilities, size=to_be_graded_len, replace=False
     )
 
-    selected_population = best_n + [to_be_graded[ix] for ix in passed_ixs]
-    selected_costs = costs_best_n + [old_costs[ix] for ix in passed_ixs]
+    selected_population = [*best_n, *(to_be_graded[ix] for ix in passed_ixs)]
+    selected_costs = [*costs_best_n, *(old_costs[ix] for ix in passed_ixs)]
 
     return selected_population, selected_costs, rng
 

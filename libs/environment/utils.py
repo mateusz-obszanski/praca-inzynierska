@@ -185,10 +185,25 @@ def find_invalid_transitions(
     """
     Returns list of tuples ((a, b), (index of a in solution, index of b in solution)).
     """
+
     return [
         ((a, b), (i, j))
         for (i, a), (j, b) in mit.windowed(enumerate(solution), n=2)  # type: ignore
         if not check_transition(a, b, cost_mx, forbidden_val)  # type: ignore
+    ]
+
+
+def find_invalid_transitions_vrpp(
+    solution: Iterable[int], cost_mx: np.ndarray, forbidden_val: float, fillval: int
+) -> list[tuple[tuple[int, int], tuple[int, int]]]:
+    """
+    Returns list of tuples ((a, b), (index of a in solution, index of b in solution)).
+    Ignores transitions, where either source or destination equals fillval.
+    """
+    return [
+        ((a, b), (i, j))
+        for (i, a), (j, b) in mit.windowed(enumerate(solution), n=2)  # type: ignore
+        if a != fillval != b and not check_transition(a, b, cost_mx, forbidden_val)  # type: ignore
     ]
 
 

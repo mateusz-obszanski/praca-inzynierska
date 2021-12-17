@@ -16,6 +16,27 @@ CostMx = np.ndarray
 ExpirationTimeDelta = float
 DistMx = np.ndarray
 DynCosts = Sequence[tuple[CostMx, ExpirationTimeDelta]]
+NonNormObjVec = list[CostT]
+"""
+Vector of cost/reward function values to be normalized by `normalize_obj_min`
+or `normalize_obj_max` respectively.
+"""
+
+
+def normalize_obj_min(current: float, highest: float, lowest: float) -> float:
+    """
+    Returns normalized objective function to be minimized.
+    """
+
+    return (highest - current) / (highest - lowest)
+
+
+def normalize_obj_max(current: float, highest: float, lowest: float) -> float:
+    """
+    Returns normalized objective function to be maximized.
+    """
+
+    return 1 - (highest - current) / (highest - lowest)
 
 
 class CostCalculator(Protocol):
@@ -24,12 +45,14 @@ class CostCalculator(Protocol):
         vx_seq: Sequence,
         dyn_costs: DynCosts,
         distance_mx: DistMx,
-        salesman_v: float,
         initial_vx: int,
         forbidden_val: float,
         *args,
         **kwargs,
-    ) -> CostT:
+    ) -> NonNormObjVec:
+        """
+        Highest and lowest costs estimations or current found values - for normalization.
+        """
         ...
 
 
@@ -85,24 +108,20 @@ def cost_calc_tsp(
     vx_seq: Sequence[int],
     dyn_costs: DynCosts,
     distance_mx: DistMx,
-    salesman_v: float,
     initial_vx: int,
     forbidden_val: float,
-) -> float:
+) -> NonNormObjVec:
     present_vxs = set(vx_seq)
     all_vxs = range(len(distance_mx))
     if any(vx not in present_vxs for vx in all_vxs):
-        return float("inf")
-    return cost_calc_core(
-        vx_seq, dyn_costs, distance_mx, salesman_v, initial_vx, forbidden_val
-    )
+        return [float("inf")]
+    return [cost_calc_core(vx_seq, dyn_costs, distance_mx, initial_vx, forbidden_val)]
 
 
 def cost_calc_core(
     vx_seq: Sequence[int],
     dyn_costs: DynCosts,
     distance_mx: DistMx,
-    salesman_v: float,
     initial_vx: int,
     forbidden_val: float,
 ) -> float:
@@ -114,145 +133,185 @@ def cost_calc_core(
         v1, v2 = next(vx_pair_iter)
     except StopIteration:
         return 0
+    EPS = 1e-4
     for travel_time, mx_exp_t in dyn_costs:
-        window_t = 0
         # distance already traversed between v1 and v2
-        traversed_d = 0
+        dist_traversed_v1_v2 = 0
         dist_v1_v2: float = distance_mx[v1, v2]
         if not isfinite(dist_v1_v2) or dist_v1_v2 == forbidden_val:
             return float("inf")
         travel_t_v1_v2: float = travel_time[v1, v2]
+        # for security - zero division
+        while travel_t_v1_v2 < EPS:
+            try:
+                v1, v2 = next(vx_pair_iter)
+            except StopIteration:
+                if v2 == initial_vx:
+                    return total_t
+                return float("inf")
+            dist_v1_v2 = distance_mx[v1, v2]
+            if not isfinite(dist_v1_v2) or dist_v1_v2 == forbidden_val:
+                return float("inf")
+            travel_t_v1_v2 = travel_time[v1, v2]
         # salesman effective speed taking into account the wind
         salesman_eff_v = dist_v1_v2 / travel_t_v1_v2
         while True:
-            dist_to_go = dist_v1_v2 - traversed_d
+            if -EPS < salesman_eff_v < EPS or salesman_eff_v <= 0:
+                # cannot move during this time window
+                break
+            dist_to_go = dist_v1_v2 - dist_traversed_v1_v2
+
             # destination reaching expected time for current travel_time matrix
             expected_end_t = total_t + dist_to_go / salesman_eff_v
-            if expected_end_t <= mx_exp_t:
-                traversed_d += dist_to_go
-                window_t += expected_end_t
-                total_t += expected_end_t
-                try:
-                    v1, v2 = next(vx_pair_iter)
-                except StopIteration:
-                    return total_t
-                dist_v1_v2 = distance_mx[v1, v2]
-                if not isfinite(dist_v1_v2) or dist_v1_v2 == forbidden_val:
-                    return float("inf")
-                travel_t_v1_v2 = travel_time[v1, v2]
-                salesman_eff_v = dist_v1_v2 / travel_t_v1_v2
-                traversed_d = 0
+            if expected_end_t >= mx_exp_t:
+                # didn't reach destination in this time window
+                time_to_end = mx_exp_t - total_t
+                dist_traversed_v1_v2 += salesman_eff_v * time_to_end
+                total_t += time_to_end
                 break
             else:
-                time_to_end = mx_exp_t - window_t
-                total_t += time_to_end
-                traversed_d += salesman_v / time_to_end
-                window_t = 0
-    return total_t
+                # reached destination, there's still time
+                total_t += dist_to_go / salesman_eff_v
+
+                # next vertex pair setup
+                # for security - zero division
+                travel_t_v1_v2 = -1
+                while travel_t_v1_v2 < EPS:
+                    try:
+                        v1, v2 = next(vx_pair_iter)
+                    except StopIteration:
+                        if v2 == initial_vx:
+                            return total_t
+                        return float("inf")
+                    dist_v1_v2 = distance_mx[v1, v2]
+                    if not isfinite(dist_v1_v2) or dist_v1_v2 == forbidden_val:
+                        return float("inf")
+                    travel_t_v1_v2 = travel_time[v1, v2]
+                salesman_eff_v = dist_v1_v2 / travel_t_v1_v2
+                dist_traversed_v1_v2 = 0
+
+    try:
+        next(vx_pair_iter)
+        return float("inf")
+    except StopIteration:
+        # if v2 == initial_vx:  # already checked at the beginning
+        #     return total_t
+        # return float("inf")
+        return total_t
 
 
 def cost_calc_vrp(
     vx_seq: list[int],
     dyn_costs: DynCosts,
     distance_mx: DistMx,
-    salesman_v: float,
     initial_vx: int,
     forbidden_val: float,
     ini_and_dummy_vxs: set[int],
-) -> float:
+) -> NonNormObjVec:
+    """
+    Distance matrix must be extended, the same for dyn_costs.
+    """
+    present_vxs = set(vx_seq) - ini_and_dummy_vxs
+    all_vxs = set(range(len(distance_mx)))
+    if not all_vxs - (present_vxs | {initial_vx}):
+        # some vertices not present in the solution
+        return [float("inf")]
     drone_seqs, _ = split_list_mult(vx_seq, ini_and_dummy_vxs)
     # ^^ splits at 0, so the first and the last subroutes is empty
     drone_seqs = ((0, *sr, 0) for sr in drone_seqs[1:-1])
-    return max(
-        cost_calc_tsp(ds, dyn_costs, distance_mx, salesman_v, initial_vx, forbidden_val)
-        for ds in drone_seqs
-    )
-
-
-def cost_calc_sdvrp_core(
-    vx_seq: list[int],
-    dyn_costs: DynCosts,
-    distance_mx: DistMx,
-    salesman_v: float,
-    initial_vx: int,
-    forbidden_val: float,
-    ini_and_dummy_vxs: set[int],
-) -> float:
-    drone_seqs, _ = split_list_mult(vx_seq, ini_and_dummy_vxs)
-    # ^^ splits at 0, so the first and the last subroutes is empty
-    drone_seqs = ((0, *sr, 0) for sr in drone_seqs[1:-1])
-    return max(
-        cost_calc_core(
-            ds, dyn_costs, distance_mx, salesman_v, initial_vx, forbidden_val
+    return [
+        max(
+            cost_calc_core(ds, dyn_costs, distance_mx, initial_vx, forbidden_val)
+            for ds in drone_seqs
         )
+    ]
+
+
+def cost_calc_vrpp_core(
+    vx_seq: list[int],
+    dyn_costs: DynCosts,
+    distance_mx: DistMx,
+    initial_vx: int,
+    forbidden_val: float,
+    ini_and_dummy_vxs: set[int],
+) -> float:
+    """
+    Distance matrix must be extended, the same for dyn_costs.
+    """
+    drone_seqs, _ = split_list_mult(vx_seq, ini_and_dummy_vxs)
+    # ^^ splits at 0, so the first and the last subroutes is empty
+    drone_seqs = ((0, *sr, 0) for sr in drone_seqs[1:-1])
+    return max(
+        cost_calc_core(ds, dyn_costs, distance_mx, initial_vx, forbidden_val)
         for ds in drone_seqs
     )
 
 
-def cost_calc_sdvrp(
+def cost_calc_vrpp(
     vx_seq: list[int],
     dyn_costs: DynCosts,
     distance_mx: DistMx,
-    salesman_v: float,
-    forbidden_val: float,
     initial_vx: int,
+    forbidden_val: float,
     ini_and_dummy_vxs: set[int],
     demands: tuple[int],
-    w1: float,
-    w2: float,
-) -> float:
+    fillval: int,
+) -> NonNormObjVec:
+    """
+    Distance matrix must be extended, the same for dyn_costs. Ignores fillvals.
+    """
+
+    vx_seq = [vx for vx in vx_seq if vx != fillval]
     rewards = (
         0 if d in ini_and_dummy_vxs else max(d, sum(1 for vx in vx_seq if vx == i))
         for i, d in enumerate(demands)
     )
-    return (
-        w1
-        * cost_calc_sdvrp_core(
-            vx_seq,
-            dyn_costs,
-            distance_mx,
-            salesman_v,
-            initial_vx,
-            ini_and_dummy_vxs=ini_and_dummy_vxs,
-            forbidden_val=forbidden_val,
-        )
-        - w2 * sum(rewards)
+    cost = cost_calc_vrpp_core(
+        vx_seq,
+        dyn_costs,
+        distance_mx,
+        initial_vx,
+        forbidden_val=forbidden_val,
+        ini_and_dummy_vxs=ini_and_dummy_vxs,
     )
+    reward = sum(rewards)
+    return [cost, reward]
 
 
 def cost_calc_irp(
     vx_seq: list[int],
     dyn_costs: DynCosts,
     distance_mx: DistMx,
-    salesman_v: float,
     initial_vx: int,
     forbidden_val: float,
     ini_and_dummy_vxs: set[int],
     demands: tuple[float],
-    w1: float,
-    w2: float,
+    fillval: int,
     quantities: list[float],
-) -> float:
+) -> NonNormObjVec:
+    """
+    Distance matrix must be extended, the same for dyn_costs.
+    """
     assert len(vx_seq) == len(demands)
+    filler_ixs = set(ix for ix, vx in enumerate(vx_seq) if vx == fillval)
+    vx_seq = [vx for ix, vx in enumerate(vx_seq) if ix not in filler_ixs]
+    quantities = [q for ix, q in enumerate(quantities) if ix not in filler_ixs]
     rewards = (
         0
         if d in ini_and_dummy_vxs
         else max(d, sum(quantities[i] for vx in vx_seq if vx == i))
         for i, d in enumerate(demands)
     )
-    return (
-        w1
-        * cost_calc_sdvrp_core(
-            vx_seq,
-            dyn_costs,
-            distance_mx,
-            salesman_v,
-            initial_vx,
-            ini_and_dummy_vxs=ini_and_dummy_vxs,
-            forbidden_val=forbidden_val,
-        )
-        - w2 * sum(rewards)
+    cost = cost_calc_vrpp_core(
+        vx_seq,
+        dyn_costs,
+        distance_mx,
+        initial_vx,
+        ini_and_dummy_vxs=ini_and_dummy_vxs,
+        forbidden_val=forbidden_val,
     )
+    reward = sum(rewards)
+    return [cost, reward]
 
 
 class CostGenCreator(Protocol):

@@ -16,12 +16,12 @@ from libs.optimizers.algorithms.genetic.operators.crossovers import (
 )
 from libs.optimizers.algorithms.genetic.operators.fixers import (
     fix_irp,
-    fix_sdvrp,
+    fix_vrpp,
     fix_tsp,
 )
 from libs.environment.cost_calculators import (
     cost_calc_irp,
-    cost_calc_sdvrp,
+    cost_calc_vrpp,
     cost_calc_tsp,
     cost_calc_vrp,
 )
@@ -71,8 +71,8 @@ EXP_ALLOWED_FUNCS: dict[ExperimentType, dict[str, list[Callable]]] = {
     __SDVRP: {
         __mutators: [*__TSP_MUTATORS, mutate_insert, mutate_del],
         __crossovers: __TSP_CROSSOVERS,
-        __cost_calcs: [cost_calc_sdvrp],
-        __fixers: [fix_sdvrp],
+        __cost_calcs: [cost_calc_vrpp],
+        __fixers: [fix_vrpp],
     },
     __IRP: {
         __mutators: [*__TSP_MUTATORS, mutate_insert_irp, mutate_del],

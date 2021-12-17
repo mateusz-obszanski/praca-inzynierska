@@ -15,6 +15,7 @@ from libs.environment.utils import (
     check_transition,
     check_transitions,
     find_invalid_transitions,
+    find_invalid_transitions_vrpp,
 )
 
 from libs.optimizers.algorithms.genetic.population.chromosomes import ChromosomeTSP
@@ -22,6 +23,10 @@ from libs.utils.iteration import (
     find_all_occurence_indices,
     find_doubled_indices,
 )
+
+
+# TODO ignoring fillvalues (also during finding mistakes)
+# quicksol - filter fillvals, do the job and later sparsify again
 
 
 Rng = TypeVar("Rng", bound=np.random.Generator)
@@ -335,13 +340,14 @@ def __get_sorted_swap_alternative_ixs(
     )
 
 
-def fix_sdvrp(
+def fix_vrpp(
     chromosome: list[int],
     dist_mx: np.ndarray,
     initial_vx: int,
     forbidden_val: float,
     max_add_iters: int,
     max_retries: int,
+    fillval: int,
 ) -> tuple[list[int], FixStatus]:
     """
     :param max_add_iters int: additional iterations for fixing
@@ -351,24 +357,26 @@ def fix_sdvrp(
     iter_n = 0
     retries = -1
     while not success and retries < max_retries and iter_n < max_add_iters:
-        chromosome, success, iter_n = __fix_sdvrp(
+        chromosome, success, iter_n = __fix_vrpp(
             chromosome,
             dist_mx,
             initial_vx,
             forbidden_val,
             max_add_iters,
+            fillval,
             __initial_iter=iter_n,
         )
         retries += 1
         if not success:
             if retries >= max_retries or iter_n >= max_add_iters:
                 return chromosome, success
-            rev_chromosome, success, iter_n = __fix_sdvrp(
+            rev_chromosome, success, iter_n = __fix_vrpp(
                 list(reversed(chromosome)),
                 dist_mx,
                 initial_vx,
                 forbidden_val,
                 max_add_iters,
+                fillval,
                 __initial_iter=iter_n,
             )
             chromosome = list(reversed(rev_chromosome))
@@ -376,12 +384,13 @@ def fix_sdvrp(
     return chromosome, success
 
 
-def __fix_sdvrp(
+def __fix_vrpp(
     chromosome: list[int],
     dist_mx: np.ndarray,
     initial_vx: int,
     forbidden_val: float,
     max_add_iters: int,
+    fillval: int,
     __initial_iter: int,
 ) -> tuple[list[int], FixStatus, int]:
     """
@@ -393,8 +402,11 @@ def __fix_sdvrp(
         chromosome[0] = initial_vx
     if chromosome[-1] != initial_vx:
         chromosome[-1] = initial_vx
-    forbidden_transitions = find_invalid_transitions(chromosome, dist_mx, forbidden_val)
-    inv_dests = (ft[0][1] for ft in forbidden_transitions)
+    forbidden_transitions = find_invalid_transitions_vrpp(
+        chromosome, dist_mx, forbidden_val, fillval
+    )
+
+    inv_dests = (dest for (_, dest), _ in forbidden_transitions)
     mistake_ixs = tuple(ft[1][1] for ft in forbidden_transitions)
     # mistakes - invalid destinations and multiple-occuring vertices
     all_vxs = set(range(dist_mx.shape[0]))
@@ -446,9 +458,123 @@ def __fix_sdvrp(
         [Sequence[int], np.ndarray, int, float], bool
     ] = lambda c, mx, _, fv: check_transitions(c, mx, fv)
 
-    return __fix_tsp_2nd_stage(
-        chromosome, dist_mx, forbidden_val, initial_vx, max_iter_n, iter_n, checker
+    return __fix_vrpp_2nd_stage(
+        chromosome,
+        dist_mx,
+        forbidden_val,
+        initial_vx,
+        max_iter_n,
+        iter_n,
+        checker,
+        fillval,
     )
+
+
+def __fix_vrpp_2nd_stage(
+    chromosome: list[int],
+    dist_mx: np.ndarray,
+    forbidden_val: float,
+    initial_vx: int,
+    max_iter_n: int,
+    current_iter_n: int,
+    checker: Callable[[Sequence[int], np.ndarray, int, float], bool],
+    fillval: int,
+) -> tuple[list[int], FixStatus, int]:
+    """
+    Finishes fixing - only invalid transitions remained but they cannot be
+    swapped, hence they must be swapped with some valid genes.
+
+    checker: (chromosome, cost_mx, initial_vx, forbidden_val) -> bool
+
+    Returns chromosome, fix status flag and end iter.
+    """
+
+    invalid_transitions = find_invalid_transitions_vrpp(
+        chromosome, dist_mx, forbidden_val, fillval
+    )
+    if not invalid_transitions:
+        return chromosome, True, current_iter_n
+    inv_target_chromosome_ixs = [t[1][1] for t in invalid_transitions]
+    chromosome_len = len(chromosome)
+    the_last_ix = chromosome_len - 1
+    valid_vx_ixs = [
+        ix
+        for ix in range(chromosome_len)
+        if ix not in inv_target_chromosome_ixs and 0 != ix != the_last_ix
+    ]
+    if not valid_vx_ixs:
+        # mistakes exist but with no alternatives => fixing impossible
+        return chromosome, False, current_iter_n
+    last_transition_invalid = invalid_transitions[-1][0][1] == initial_vx
+    if last_transition_invalid:
+        prev_to_last_ix = chromosome_len - 2
+        # edge case - destinations are considered invalid, but the last is fixed
+        # add second to last index to invalid indices
+        if len(inv_target_chromosome_ixs) > 1:
+            if inv_target_chromosome_ixs[-2] != prev_to_last_ix:
+                inv_target_chromosome_ixs[-1] = prev_to_last_ix
+            else:
+                inv_target_chromosome_ixs.pop()
+        else:
+            # length is 1, if it was 0 would return earlier
+            inv_target_chromosome_ixs[0] = prev_to_last_ix
+        if valid_vx_ixs[-1] == prev_to_last_ix:
+            # if present, always at the end
+            valid_vx_ixs.pop()
+
+    already_swapped_at_mistake_ix: list[Optional[int]] = [
+        None for _ in inv_target_chromosome_ixs
+    ]
+    already_used_alts_at_mistake_ix = tuple(deque() for _ in inv_target_chromosome_ixs)
+    mistake_n = len(inv_target_chromosome_ixs)
+    mistake_ix = 0
+    while mistake_ix < mistake_n:
+        if current_iter_n >= max_iter_n:
+            return chromosome, False, current_iter_n
+        current_iter_n += 1
+        current_mistake_chromosome_ix = inv_target_chromosome_ixs[mistake_ix]
+        # sorting is needed in case of two mistakes next to each other - the
+        # previous affects next
+        all_alternative_ixs_at_mistake_ix = __get_sorted_swap_alternative_ixs(
+            chromosome,
+            valid_vx_ixs,
+            dist_mx,
+            current_mistake_chromosome_ix,
+            forbidden_val=forbidden_val,
+        )
+        if all_alternative_ixs_at_mistake_ix:
+            current_already_used_alt_ixs = already_used_alts_at_mistake_ix[mistake_ix]
+            valid_alt_ix = next(
+                (
+                    aix
+                    for aix in all_alternative_ixs_at_mistake_ix
+                    if aix not in current_already_used_alt_ixs
+                    and chromosome[aix] not in already_swapped_at_mistake_ix
+                ),
+                None,
+            )
+        else:
+            valid_alt_ix = None
+        if valid_alt_ix is None:
+            # fallback to the previous mistake index
+            if mistake_ix <= 0:
+                # fallback impossible => fixing impossible
+                return chromosome, False, current_iter_n
+            already_used_alts_at_mistake_ix[mistake_ix].clear()
+            already_swapped_at_mistake_ix[mistake_ix] = None
+            mistake_ix -= 1
+            continue
+        # swap
+        mistake_vx = chromosome[current_mistake_chromosome_ix]
+        alt_vx = chromosome[valid_alt_ix]
+        chromosome[current_mistake_chromosome_ix] = alt_vx
+        chromosome[valid_alt_ix] = mistake_vx
+        already_swapped_at_mistake_ix[mistake_ix] = alt_vx
+        already_used_alts_at_mistake_ix[mistake_ix].append(valid_alt_ix)
+        mistake_ix += 1
+
+    fix_status = checker(chromosome, dist_mx, initial_vx, forbidden_val)
+    return chromosome, fix_status, current_iter_n
 
 
 def fix_irp(
@@ -458,6 +584,7 @@ def fix_irp(
     forbidden_val: float,
     max_add_iters: int,
     max_retries: int,
+    fillval: int,
     default_quantity: float,
     quantities: list[float],
 ) -> tuple[list[int], list[float], FixStatus]:
@@ -479,6 +606,7 @@ def fix_irp(
             initial_vx,
             forbidden_val,
             max_add_iters,
+            fillval,
             __initial_iter=iter_n,
             default_quantity=default_quantity,
             quantities=quantities,
@@ -493,6 +621,7 @@ def fix_irp(
                 initial_vx,
                 forbidden_val,
                 max_add_iters,
+                fillval,
                 __initial_iter=iter_n,
                 default_quantity=default_quantity,
                 quantities=list(reversed(quantities)),
@@ -509,6 +638,7 @@ def __fix_irp(
     initial_vx: int,
     forbidden_val: float,
     max_add_iters: int,
+    fillval: int,
     __initial_iter: int,
     default_quantity: float,
     quantities: list[float],
@@ -527,7 +657,9 @@ def __fix_irp(
     if vx_seq[0] != initial_vx:
         vx_seq[-1] = initial_vx
         quantities[-1] = default_quantity
-    forbidden_transitions = find_invalid_transitions(vx_seq, dist_mx, forbidden_val)
+    forbidden_transitions = find_invalid_transitions_vrpp(
+        vx_seq, dist_mx, forbidden_val, fillval
+    )
     inv_dests = (ft[0][1] for ft in forbidden_transitions)
     mistake_ixs = tuple(ft[1][1] for ft in forbidden_transitions)
     # mistakes - invalid destinations and multiple-occuring vertices
@@ -589,6 +721,7 @@ def __fix_irp(
         max_iter_n,
         iter_n,
         checker,
+        fillval,
         default_quantity,
         quantities,
     )
@@ -602,6 +735,7 @@ def __fix_irp_2nd_stage(
     max_iter_n: int,
     current_iter_n: int,
     checker: Callable[[Sequence[int], np.ndarray, int, float], bool],
+    fillval,
     default_quantity: float,
     quantities: list[float],
 ) -> tuple[list[int], list[float], FixStatus, int]:
@@ -614,7 +748,9 @@ def __fix_irp_2nd_stage(
     Returns chromosome, fix status flag and end iter.
     """
 
-    invalid_transitions = find_invalid_transitions(vx_seq, dist_mx, forbidden_val)
+    invalid_transitions = find_invalid_transitions_vrpp(
+        vx_seq, dist_mx, forbidden_val, fillval
+    )
     if not invalid_transitions:
         return vx_seq, quantities, True, current_iter_n
     inv_target_chromosome_ixs = [t[1][1] for t in invalid_transitions]
