@@ -19,6 +19,7 @@ class ExperimentBase(BaseDataclass):
     crossovers: list[str]
     fixers: list[str]
     cost_calcs: list[str]
+    rng_seed: int
 
     def pre_load_and_validate(self, data, **_) -> dict[str, Any]:
         self.check_numeric_fields(data)

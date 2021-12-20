@@ -100,7 +100,7 @@ def fix_tsp(
                 return chromosome, success
             rev_chromosome, success, iter_n = __fix_tsp(
                 list(reversed(chromosome)),
-                dist_mx,
+                dist_mx.T,
                 initial_vx,
                 forbidden_val,
                 max_add_iters,
@@ -372,7 +372,7 @@ def fix_vrpp(
                 return chromosome, success
             rev_chromosome, success, iter_n = __fix_vrpp(
                 list(reversed(chromosome)),
-                dist_mx,
+                dist_mx.T,
                 initial_vx,
                 forbidden_val,
                 max_add_iters,
@@ -617,7 +617,7 @@ def fix_irp(
                 return vx_seq, quantities, success
             rev_vx_seq, rev_quantities, success, iter_n = __fix_irp(
                 list(reversed(vx_seq)),
-                dist_mx,
+                dist_mx.T,
                 initial_vx,
                 forbidden_val,
                 max_add_iters,

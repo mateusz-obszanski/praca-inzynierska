@@ -1,7 +1,8 @@
 from collections.abc import Iterator, Sequence, Iterable, Hashable, Container
 from collections import deque
-from typing import TypeVar, Union
+from typing import Any, TypeVar, Union
 import itertools as it
+from dataclasses import fields
 
 import numpy as np
 import more_itertools as mit
@@ -128,6 +129,20 @@ def find_doubled_indices(
             double_indices[elem].append(i)
 
     return double_indices
+
+
+FieldName = str
+FieldVal = Any
+FieldType = type
+
+
+def iterate_dataclass(
+    instance,
+) -> Iterator[tuple[FieldName, FieldVal, FieldType]]:
+    for field in fields(instance):
+        name = field.name
+        value = getattr(instance, name)
+        yield name, value, type(value)
 
 
 def iterate_triangular_indices(

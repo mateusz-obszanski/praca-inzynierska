@@ -30,13 +30,13 @@ from libs.environment.cost_calculators import (
 class ExperimentType(Enum):
     TSP = auto()
     VRP = auto()
-    SDVRP = auto()
+    VRPP = auto()
     IRP = auto()
 
 
 __TSP = ExperimentType.TSP
 __VRP = ExperimentType.VRP
-__SDVRP = ExperimentType.SDVRP
+__SDVRP = ExperimentType.VRPP
 __IRP = ExperimentType.IRP
 
 __mutators = "mutators"

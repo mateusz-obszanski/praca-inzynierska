@@ -1,0 +1,6 @@
+class GeneticStepperError(Exception):
+    ...
+
+
+class InitialPopInvalidError(GeneticStepperError):
+    ...
