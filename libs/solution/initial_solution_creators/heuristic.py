@@ -35,6 +35,7 @@ def create_irp_sol_nn_sa(
     w2: float,
     rng: Rng,
 ) -> tuple[list[int], list[float], CostT, Rng]:
+    raise DeprecationWarning
     route = graph_cycle_greedy_nn(ext_dist_mx, initial_vx, forbidden_val)
     route_len = len(route)
     low = np.full(shape=route_len, fill_value=0.0, dtype=np.float64)

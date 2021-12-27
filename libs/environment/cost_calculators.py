@@ -1,8 +1,9 @@
-from typing import Generator, Protocol
+from typing import Callable, Generator, Protocol
 from collections.abc import Iterator, Sequence
 from math import isfinite
 
 import numpy as np
+import itertools as it
 import more_itertools as mit
 
 from libs.solution import SolutionTSP
@@ -125,8 +126,10 @@ def cost_calc_core(
     initial_vx: int,
     forbidden_val: float,
 ) -> float:
-    if initial_vx != vx_seq[0] != vx_seq[-1] != initial_vx:
+    if vx_seq[0] != initial_vx != vx_seq[-1]:
         return float("inf")
+    if len(vx_seq) == 2:
+        return 0
     total_t = 0
     vx_pair_iter: Iterator[tuple[int, int]] = mit.windowed(vx_seq, n=2)  # type: ignore
     try:
@@ -182,9 +185,11 @@ def cost_calc_core(
                     except StopIteration:
                         if v2 == initial_vx:
                             return total_t
+
                         return float("inf")
                     dist_v1_v2 = distance_mx[v1, v2]
                     if not isfinite(dist_v1_v2) or dist_v1_v2 == forbidden_val:
+
                         return float("inf")
                     travel_t_v1_v2 = travel_time[v1, v2]
                 salesman_eff_v = dist_v1_v2 / travel_t_v1_v2
@@ -192,6 +197,7 @@ def cost_calc_core(
 
     try:
         next(vx_pair_iter)
+
         return float("inf")
     except StopIteration:
         # if v2 == initial_vx:  # already checked at the beginning
@@ -261,9 +267,10 @@ def cost_calc_vrpp(
     Distance matrix must be extended, the same for dyn_costs. Ignores fillvals.
     """
 
-    vx_seq = [vx for vx in vx_seq if vx != fillval]
+    fillval_ixs = set(ix for ix, vx in enumerate(vx_seq) if vx == fillval)
+    vx_seq = [vx for ix, vx in enumerate(vx_seq) if ix not in fillval_ixs]
     rewards = (
-        0 if d in ini_and_dummy_vxs else max(d, sum(1 for vx in vx_seq if vx == i))
+        0 if i in ini_and_dummy_vxs else max(d, sum(vx == i for vx in vx_seq))
         for i, d in enumerate(demands)
     )
     cost = cost_calc_vrpp_core(
@@ -288,18 +295,33 @@ def cost_calc_irp(
     demands: tuple[float],
     fillval: int,
     quantities: list[float],
+    capacity: float,
 ) -> NonNormObjVec:
     """
     Distance matrix must be extended, the same for dyn_costs.
+    `capacity` - salesman's capacity
     """
-    assert len(vx_seq) == len(demands)
+    assert len(vx_seq) == len(quantities)
     filler_ixs = set(ix for ix, vx in enumerate(vx_seq) if vx == fillval)
     vx_seq = [vx for ix, vx in enumerate(vx_seq) if ix not in filler_ixs]
-    quantities = [q for ix, q in enumerate(quantities) if ix not in filler_ixs]
+    valid_quantities = tuple(
+        q for ix, q in enumerate(quantities) if ix not in filler_ixs
+    )
+    quantity_cumsum = np.cumsum(valid_quantities)
+    first_oob = next(
+        (ix for ix, cs in enumerate(quantity_cumsum) if cs >= capacity), None
+    )  # first out of bounds
+    if first_oob is not None:
+        valid_quantities = (
+            *valid_quantities[:first_oob],
+            capacity - quantity_cumsum[first_oob],
+            *(it.repeat(0, len(valid_quantities) - first_oob - 1)),
+        )
+    assert len(valid_quantities) == len(vx_seq)
     rewards = (
         0
-        if d in ini_and_dummy_vxs
-        else max(d, sum(quantities[i] for vx in vx_seq if vx == i))
+        if i in ini_and_dummy_vxs
+        else max(d, sum(q for vx, q in zip(vx_seq, valid_quantities) if vx == i))
         for i, d in enumerate(demands)
     )
     cost = cost_calc_vrpp_core(

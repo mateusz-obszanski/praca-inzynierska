@@ -5,7 +5,8 @@ from marshmallow import pre_load, post_load
 
 from libs.schemas.exp_funcs_map import EXP_ALLOWED_FUNCS, ExperimentType
 
-from .experiment_base import ExperimentBase, LoadCallablesError
+from .experiment_base import ExperimentBase
+from .exceptions import LoadCallablesError
 
 
 @dataclass

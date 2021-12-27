@@ -34,7 +34,7 @@ def genetic_stepper_tsp(
     mutators: list[Mutator],
     mut_ps: dict[Mutator, float],
     crossover_kwargs: dict[str, Any],
-    mut_kwargs: list[dict[str, Any]],
+    mut_kwargs: dict[Mutator, dict[str, Any]],
     initial_vx: int,
     fix_max_add_iters: int,
     fix_max_retries: int,

@@ -26,9 +26,9 @@ def apply_mutators(
     c: np.ndarray,
     mutators: Iterable[Mutator],
     mut_ps: dict[Mutator, float],
-    mut_kwargs: Iterable[dict[str, Any]],
+    mut_kwargs: dict[Mutator, dict[str, Any]],
     rng: Rng,
 ) -> tuple[np.ndarray, Rng]:
-    for m, kwds in zip(mutators, mut_kwargs):
-        c, rng = m(c, mut_ps[m], rng, **kwds)
+    for m in mutators:
+        c, rng = m(c, mut_ps[m], rng, **mut_kwargs[m])
     return c, rng

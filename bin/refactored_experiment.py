@@ -6,33 +6,23 @@ from more_itertools import take
 import numpy as np
 from bin.utils import ExpEndReason, process_generation_data, write_results
 
-from libs.schemas.exp_funcs_map import ExperimentType
-from libs.data_loading import get_experiment_config
+from libs.data_loading.loaders import get_experiment_config
 from libs.optimizers.algorithms.genetic.steppers.tsp import genetic_stepper_tsp
-from libs.utils.iteration import iterate_dataclass
-
-
-# TODO TSP experiment run
-# TODO IRP run
+from libs.data_loading.utils import ExperimentType
 
 
 Chromosome = np.ndarray
 Population = list[Chromosome]
 
 
-def experiment(exp_t: str, exp_conf_path: str, results_path: str):
-    # TODO other than TSP
-    # TODO read fields from config file
-    # TODO export as CLI
+def experiment_tsp(exp_conf_path: str, results_path: str):
     _results_path = Path(results_path)
     del results_path
-    _exp_t = ExperimentType[exp_t.upper()]
-    del exp_t
-    exp_config = get_experiment_config(_exp_t, exp_conf_path)
+    exp_config = get_experiment_config(ExperimentType.TSP, exp_conf_path)
     population: Population = [
-        individual["vx_seq"] for individual in exp_config.initial_population
+        individual["vx_seq"] for individual in exp_config.population
     ]
-    rng = np.random.default_rng(exp_config.rng_seed)
+    rng = np.random.default_rng(exp_config.rng)
     stepper = genetic_stepper_tsp(
         population=population,
         dyn_costs=exp_config.dyn_costs,

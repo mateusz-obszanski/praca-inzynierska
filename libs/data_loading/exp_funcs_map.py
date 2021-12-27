@@ -1,4 +1,3 @@
-from enum import Enum, auto
 from typing import Callable
 
 from libs.optimizers.algorithms.genetic.operators.mutations import (
@@ -12,6 +11,7 @@ from libs.optimizers.algorithms.genetic.operators.crossovers import (
     crossover_k_loci_poisson_ndarray,
     crossover_k_loci_poisson_with_inversion_ndarray,
     crossover_k_loci_with_inversion,
+    crossover_k_loci_with_inversion_ndarray,
     crossover_ndarray,
 )
 from libs.optimizers.algorithms.genetic.operators.fixers import (
@@ -25,7 +25,7 @@ from libs.environment.cost_calculators import (
     cost_calc_tsp,
     cost_calc_vrp,
 )
-from libs.data_loading.utils import ExperimentType
+from .utils import ExperimentType
 
 
 __TSP = ExperimentType.TSP
@@ -43,7 +43,7 @@ __TSP_CROSSOVERS = [
     crossover_ndarray,
     crossover_k_loci_ndarray,
     crossover_k_loci_poisson_ndarray,
-    crossover_k_loci_with_inversion,
+    crossover_k_loci_with_inversion_ndarray,
     crossover_k_loci_poisson_with_inversion_ndarray,
 ]
 

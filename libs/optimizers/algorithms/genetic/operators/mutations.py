@@ -15,7 +15,7 @@ Rng = TypeVar("Rng", bound=np.random.Generator)
 
 class Mutator(Protocol):
     def __call__(
-        self, c: np.ndarray, p: float, rng: Rng, *args
+        self, c: np.ndarray, p: float, rng: Rng, *args, **kwargs
     ) -> tuple[np.ndarray, Rng]:
         ...
 

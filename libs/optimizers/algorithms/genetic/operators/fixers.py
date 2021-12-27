@@ -587,6 +587,7 @@ def fix_irp(
     fillval: int,
     default_quantity: float,
     quantities: list[float],
+    capacity: float,
 ) -> tuple[list[int], list[float], FixStatus]:
     """
     Mistake invalidates quantity left at vertex, so fixer sets it to `default_quantity`.
@@ -595,6 +596,7 @@ def fix_irp(
     :param max_add_iters int: additional iterations for fixing
     :param chromosome np.ndarray: array[<vx i>, <0 - vx, 1 - quantity>]
     """
+
     assert len(vx_seq) == len(quantities)
     success = False
     iter_n = 0
@@ -614,7 +616,8 @@ def fix_irp(
         retries += 1
         if not success:
             if retries >= max_retries or iter_n >= max_add_iters:
-                return vx_seq, quantities, success
+                fixed_quantities = __fix_irp_quantities(quantities, capacity)
+                return vx_seq, fixed_quantities, success
             rev_vx_seq, rev_quantities, success, iter_n = __fix_irp(
                 list(reversed(vx_seq)),
                 dist_mx.T,
@@ -629,7 +632,8 @@ def fix_irp(
             vx_seq = list(reversed(rev_vx_seq))
             quantities = list(reversed(rev_quantities))
         retries += 1
-    return vx_seq, quantities, success
+    fixed_quantities = __fix_irp_quantities(quantities, capacity)
+    return vx_seq, fixed_quantities, success
 
 
 def __fix_irp(
@@ -837,6 +841,15 @@ def __fix_irp_2nd_stage(
 
     fix_status = checker(vx_seq, dist_mx, initial_vx, forbidden_val)
     return vx_seq, quantities, fix_status, current_iter_n
+
+
+def __fix_irp_quantities(quantities: list[float], capacity: float) -> list[float]:
+    qs_sum = sum(quantities)
+    if qs_sum > capacity:
+        m = capacity / qs_sum
+        return [q * m for q in quantities]
+    else:
+        return quantities
 
 
 # def fix_chromosome_no_doubles_deprecated(

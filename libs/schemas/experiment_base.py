@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import Any
 from dataclasses import dataclass, field
 from pathlib import Path
 import json
@@ -7,12 +7,13 @@ import json
 from marshmallow.exceptions import ValidationError
 import numpy as np
 
+
 from .base import BaseDataclass
-from libs.schemas.exp_funcs_map import EXP_ALLOWED_FUNCS, ExperimentType
+from .exceptions import MapDataError, PopulationDataError
 
 
 @dataclass
-class ExperimentBase(BaseDataclass):
+class ExperimentBase(BaseDataclass, ABC):
     environment_path: str = field(metadata={"is_path": True})
     initial_population_path: str = field(metadata={"is_path": True})
     mutators: list[str]
@@ -88,19 +89,3 @@ class ExperimentBase(BaseDataclass):
     @abstractmethod
     def load_callables(self, data: dict[str, Any]) -> dict[str, Any]:
         ...
-
-
-class ExperimentBaseError(ValidationError):
-    ...
-
-
-class MapDataError(ExperimentBaseError):
-    ...
-
-
-class PopulationDataError(ExperimentBaseError):
-    ...
-
-
-class LoadCallablesError(ExperimentBaseError):
-    ...
