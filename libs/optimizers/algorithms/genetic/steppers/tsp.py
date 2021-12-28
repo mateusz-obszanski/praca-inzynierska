@@ -54,6 +54,20 @@ def genetic_stepper_tsp(
     ]
     if any(not valid for valid in fix_statuses):
         inv_ixs = [i for i, success in enumerate(fix_statuses) if not success]
+        # FIXME remove
+        print(
+            "\n".join(
+                f"{sol}{'x' if i in inv_ixs else ''}"
+                for i, sol in enumerate(population)
+            )
+        )
+        inv_transitions = [
+            f"{i}->{j}"
+            for i in range(len(dist_mx))
+            for j in range(len(dist_mx))
+            if dist_mx[i, j] == -1
+        ]
+        print(f"{inv_transitions = }")
         raise InitialPopInvalidError("some initial individuals were not valid", inv_ixs)
     cost_vecs = [
         cost_calc_tsp(c, dyn_costs, dist_mx, initial_vx, forbidden_val)
@@ -63,11 +77,17 @@ def genetic_stepper_tsp(
     cross_inv_p = crossover_kwargs.get("inversion_p")
     no_of_failures = sum(not success for success in fix_statuses)
     initial_data = NextGenData(costs, no_of_failures, mut_ps, cross_inv_p)
+    # FIXME remove
+    print(f"initial: {len(costs) = }, {len(population) = }")
     yield population, initial_data, rng  # type: ignore
     while True:
+        print(f"in while: {len(costs) = }, {len(population) = }")
         parents, parent_costs, rng = select_best_parents_with_probability(
             population, costs, rng
         )
+        # FIXME remove
+        print(f"{len(parent_costs) = }")
+        print(f"{crossover_kwargs = }")
         offspring = list(
             it.chain.from_iterable(
                 crossover(p1, p2, rng, **crossover_kwargs)[:-1] for p1, p2 in parents
@@ -80,7 +100,7 @@ def genetic_stepper_tsp(
             fix_tsp(
                 c.tolist(),
                 dist_mx,
-                rng,
+                initial_vx,
                 forbidden_val,
                 fix_max_add_iters,
                 fix_max_retries,
@@ -107,6 +127,8 @@ def genetic_stepper_tsp(
         next_gen, next_gen_costs, rng = select_population_with_probability(
             flattened_parents, checked_offspring, parent_costs, offspring_costs, rng
         )
+        # FIXME remove
+        print(f"{len(next_gen_costs) = }, {len(next_gen) = }")
         no_of_failures = sum(not success for success in fix_statuses)
         generation_data = NextGenData(
             next_gen_costs, no_of_failures, mut_ps, cross_inv_p

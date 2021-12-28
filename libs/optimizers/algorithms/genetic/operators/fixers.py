@@ -124,6 +124,8 @@ def __fix_tsp(
 
     Return chromosome, fix status flag and end_iter.
     """
+    # FIXME remove
+    print(f"__fix_tsp {chromosome = }\n{initial_vx = }({type(initial_vx)})")
     if chromosome[0] != initial_vx:
         chromosome[0] = initial_vx
     if chromosome[-1] != initial_vx:
@@ -135,7 +137,12 @@ def __fix_tsp(
         if len(occ) > 1 and vx != initial_vx
         # ^^ initial vx should appear at the beginning and the end
     }
-    forbidden_transitions = find_invalid_transitions(chromosome, dist_mx, forbidden_val)
+    # FIXME remove
+    try:
+        forbidden_transitions = find_invalid_transitions(chromosome, dist_mx, forbidden_val)
+    except IndexError as e:
+        print(f"{chromosome = }({type(chromosome)})")
+        raise e
     inv_dests = [ft[0][1] for ft in forbidden_transitions]
     inv_dest_ixs = [ft[1][1] for ft in forbidden_transitions]
     mult_vxs = [*mult_occ_map.keys()]

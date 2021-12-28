@@ -6,3 +6,9 @@ class NoExtensionError(Exception):
 
 class ExpError(Exception):
     ...
+
+
+class InitialPopFixError(Exception):
+    """
+    Raised when cannot fix or regenerate and fix random solutions.
+    """

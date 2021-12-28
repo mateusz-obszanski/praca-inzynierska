@@ -57,9 +57,7 @@ def simulated_annealing(
             since_better += 1
         if since_better >= early_stop_iters:
             break
-    info = {
-        "iterations": i
-    }
+    info = {"iterations": i}
     return sol_best, obj_best, info, rng
 
 
@@ -105,9 +103,7 @@ def generalized_simulated_annealing(
         early_stop_iters = iter_max
 
     if initial_sol is None:
-        sol_best = bounds[:, 0] + random_unit(size=D) * (
-            bounds[:, 1] - bounds[:, 0]
-        )
+        sol_best = bounds[:, 0] + random_unit(size=D) * (bounds[:, 1] - bounds[:, 0])
     else:
         sol_best = initial_sol
     obj_curr = obj_best = f(sol_best)
@@ -127,7 +123,7 @@ def generalized_simulated_annealing(
         obj_diff = obj_cand - obj_curr
         obj_diff_distorted = -exp(beta_neg * obj_diff)
 
-        temp = initial_temp * exp(alpha_neg * i**D_inv)
+        temp = initial_temp * exp(alpha_neg * i ** D_inv)
         # exponential distortion
         # metropolis acceptance criterion
         metr_crit_val = exp(-obj_diff_distorted / temp)
@@ -139,14 +135,13 @@ def generalized_simulated_annealing(
             since_better += 1
         if since_better >= early_stop_iters:
             break
-    info = {
-        "iterations": i
-    }
+    info = {"iterations": i}
     return sol_best, obj_best, info, rng
 
 
 class CauchyDistr(rv_continuous):
     "Cauchy distribution for simulated annealing"
+
     def _pdf(self, x, a: float, T: float):
-        aT = a*T
-        return aT / (pi*aT*aT + x*x)
+        aT = a * T
+        return aT / (pi * aT * aT + x * x)

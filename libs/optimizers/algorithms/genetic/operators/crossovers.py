@@ -300,7 +300,12 @@ def __chunkify_parents_ndarray(
     p1: np.ndarray, p2: np.ndarray, rng: Rng, k: int
 ) -> tuple[Iterator[np.ndarray], Iterator[np.ndarray], Rng]:
     p_len = p1.shape[0]
-    chunk_n = k + 1
+    # FIXME remove
+    try:
+        chunk_n = k + 1
+    except TypeError as e:
+        print(f"{k = }({type(k)})")
+        raise e
     ixs, rng = random_chunk_range_indices(p_len, chunk_n, rng)
     ixs = (0, *ixs, p_len)
     p1_chunks, p2_chunks = (

@@ -30,5 +30,10 @@ def apply_mutators(
     rng: Rng,
 ) -> tuple[np.ndarray, Rng]:
     for m in mutators:
-        c, rng = m(c, mut_ps[m], rng, **mut_kwargs[m])
+        m_name = m.__name__  # type: ignore
+        try:
+            c, rng = m(c, mut_ps[m_name], rng, **mut_kwargs[m_name])
+        except KeyError as e:
+            print(f"{mut_kwargs.keys() = }\n{mut_ps.keys() = }\n{m_name = }")
+            raise e
     return c, rng

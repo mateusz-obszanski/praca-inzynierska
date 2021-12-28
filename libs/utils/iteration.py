@@ -74,13 +74,18 @@ def random_chunk_range_indices(it_len: int, n: int, rng: Rng) -> tuple[list[int]
     ix_pool = set(range(1, it_len - 1))
 
     # n - 1 split indices
-    for _ in range(n - 1):
-        if not ix_pool:
-            break
+    # FIXME remove
+    try:
+        for _ in range(n - 1):
+            if not ix_pool:
+                break
 
-        new_split_ix = rng.choice(list(ix_pool))
-        ix_pool.difference_update([new_split_ix - 1, new_split_ix, new_split_ix + 1])
-        split_ix_buffer.append(new_split_ix)
+            new_split_ix = rng.choice(list(ix_pool))
+            ix_pool.difference_update([new_split_ix - 1, new_split_ix, new_split_ix + 1])
+            split_ix_buffer.append(new_split_ix)
+    except TypeError as e:
+        print(f"{n = }({type(n)})")
+        raise e
 
     split_ixs = sorted(split_ix_buffer)
 

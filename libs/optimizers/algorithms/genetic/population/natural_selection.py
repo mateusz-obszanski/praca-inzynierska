@@ -60,34 +60,40 @@ def select_population_with_probability(
 
     sorted_old_population: Population
 
-    sorted_old_population = [
-        chromosome
-        for _, chromosome in sorted(zip(old_costs, old_gen), key=itemgetter(0))
-    ]
+    sorted_old_costs, sorted_old_population = zip(  # type: ignore
+        *sorted(zip(old_costs, old_gen), key=itemgetter(0))
+    )
+    sorted_old_costs = np.array(sorted_old_costs)
 
     if n_best_bypass:
         best_n = sorted_old_population[:n_best_bypass]
-        costs_best_n = old_costs[:best_n]
+        costs_best_n = sorted_old_costs[:best_n]
         to_be_graded = sorted_old_population[n_best_bypass:]
-        old_costs = old_costs[best_n:]
+        sorted_old_costs = sorted_old_costs[best_n:]
     else:
         best_n = []
         costs_best_n = []
         to_be_graded = sorted_old_population
 
     # shift on y axis to 0 and add BIAS
-    grades = -old_costs + old_costs.max() + BIAS
+    grades = -sorted_old_costs + sorted_old_costs[np.isfinite(sorted_old_costs)].max() + BIAS
+    grades[~np.isfinite(grades)] = BIAS
 
     probabilities = grades / grades.sum()
 
     to_be_graded_len = len(to_be_graded)
 
-    passed_ixs = rng.choice(
-        to_be_graded_len, p=probabilities, size=to_be_graded_len, replace=False
-    )
+    # FIXME remove
+    try:
+        passed_ixs = rng.choice(
+            to_be_graded_len, p=probabilities, size=to_be_graded_len, replace=False
+        )
+    except ValueError as e:
+        print(f"{to_be_graded_len = }, {len(probabilities) = }")
+        raise e
 
     selected_population = [*best_n, *(to_be_graded[ix] for ix in passed_ixs)]
-    selected_costs = [*costs_best_n, *(old_costs[ix] for ix in passed_ixs)]
+    selected_costs = [*costs_best_n, *(sorted_old_costs[ix] for ix in passed_ixs)]
 
     return selected_population, selected_costs, rng
 
@@ -101,13 +107,26 @@ def replace_invalid_offspring(
     assert 2 * len(parents) == len(parent_costs)
     assert 2 * len(parents) == len(offspring)
     assert len(offspring) == len(offspring_fix_statuses)
-    fail_ixs = [i for i, success in offspring_fix_statuses if not success]
+    # FIXME remove
+    try:
+        fail_ixs = [i for i, success in enumerate(offspring_fix_statuses) if not success]
+    except TypeError as e:
+        print(f"{offspring_fix_statuses = }")
+        raise e
     # fail pairs that have the same parents
-    fail_ix_pairs: tuple[tuple[int, int]] = tuple(  # type: ignore
-        (i1, i2)
-        for i1, i2 in mit.windowed(fail_ixs, n=2)
-        if i1 % 2 == 0 and i1 == i2 - 1  # type: ignore
-    )
+    # FIXME remove
+    try:
+        if len(fail_ixs) > 1:
+            fail_ix_pairs: tuple[tuple[int, int], ...] = tuple(
+                (i1, i2)
+                for i1, i2 in mit.windowed(fail_ixs, n=2)
+                if i1 % 2 == 0 and i1 == i2 - 1  # type: ignore
+            )
+        else:
+            fail_ix_pairs = ()
+    except TypeError as e:
+        print(f"{fail_ixs = }")
+        raise e
     for i1, i2 in fail_ix_pairs:
         p1, p2 = parents[i1 // 2]
         i2p1 = i2 + 1

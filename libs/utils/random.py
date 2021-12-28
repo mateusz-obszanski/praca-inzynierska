@@ -1,5 +1,6 @@
 from collections.abc import Sequence
 from typing import Optional, TypeVar
+from math import isfinite
 
 import more_itertools as mit
 import numpy as np
@@ -35,10 +36,8 @@ def probabilities_by_value(values: Sequence[float]) -> list[float]:
     The higher the value, the bigger its share. Values have to be positive.
     """
 
-    probabilities = np.array(values, dtype=np.float64)
-    probabilities /= probabilities.sum()
-
-    return probabilities.astype(float).tolist()
+    s = sum(x if isfinite(x) else 0 for x in values)
+    return [x / s for x in values]
 
 
 def randomly_chunkify(

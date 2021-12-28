@@ -1,4 +1,5 @@
 from collections.abc import Iterable
+from math import isfinite
 from typing import Sequence, TypeVar, Union, overload, Literal, Protocol
 import more_itertools as mit
 import numpy as np
@@ -92,15 +93,26 @@ def select_best_parents_with_probability(
     BIAS = 1e-3
 
     attractiveness = -np.array(costs, dtype=np.float64)
+    print(f"{costs = }\n{attractiveness = }")
+    attractiveness[~np.isfinite(attractiveness)] = 0
     # shift to [0, max-min]
-    attractiveness -= attractiveness.min()
+    attractiveness += attractiveness.min()
     # scale to [0, 1]
     attractiveness += BIAS
 
     probabilities = probabilities_by_value(attractiveness)
-    ixs_by_probability = rng.choice(
-        population_size, p=probabilities, size=population_size, replace=False
-    )
+    try:
+        ixs_by_probability = rng.choice(
+            population_size, p=probabilities, size=population_size, replace=False
+        )
+    except ValueError as e:
+        print(f"{population_size = }, {len(probabilities) = }")
+        raise e
+    except Exception as e:
+        # FIXME remove
+        print(f"{costs = }")
+        print(f"{probabilities = }")
+        raise e
 
     paired_parents: list[PairedChromosomes] = [
         (population[i], population[j])  # type: ignore

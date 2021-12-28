@@ -186,6 +186,9 @@ def find_invalid_transitions(
     Returns list of tuples ((a, b), (index of a in solution, index of b in solution)).
     """
 
+    # FIXME remove
+    print(f"find invalid transitions {solution = }")
+
     return [
         ((a, b), (i, j))
         for (i, a), (j, b) in mit.windowed(enumerate(solution), n=2)  # type: ignore
@@ -210,7 +213,12 @@ def find_invalid_transitions_vrpp(
 def check_transition(
     a: int, b: int, dist_mx: np.ndarray, forbidden_val: float = -1
 ) -> bool:
-    cost = dist_mx[a, b]
+    # FIXME remove
+    try:
+        cost = dist_mx[a, b]
+    except IndexError as e:
+        print(f"{a = }({type(a)}), {b = }({type(b)})")
+        raise e
     return math.isfinite(cost) and cost != forbidden_val
 
 

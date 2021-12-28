@@ -37,7 +37,7 @@
                 0.3
             ]
         },
-        "crossover_with_inversion_ndarray": {
+        "crossover_k_loci_with_inversion_ndarray": {
             "k": [
                 2,
                 3,

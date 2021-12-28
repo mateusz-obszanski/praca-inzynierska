@@ -1,30 +1,35 @@
-from enum import Enum, auto
 from pathlib import Path
-from typing import Any, Union
+from typing import Any, Optional, Union
 import json
+from traceback import format_tb
 
 import numpy as np
 
 from libs.optimizers.algorithms.genetic.steppers.utils import NextGenData
-
-
-class ExpEndReason(Enum):
-    TIMEOUT = auto()
-    EARLY_STOP_N = auto()
-    ITERS = auto()
-    """ordinary reason"""
+from bin.progress_bar import EndReason
 
 
 def write_results(
     best_sol: np.ndarray,
-    end_reason: ExpEndReason,
+    end_reason: EndReason,
     data: dict[str, Any],
-    path: Union[str, Path],
+    exp_conf_path: Union[str, Path],
+    results_path: Union[str, Path],
+    end_iter: int,
+    exception: Optional[Exception] = None,
 ):
-    path = Path(path)
+    results_path = Path(results_path)
     data["end_reason"] = end_reason.name.lower()
     data["best_sol"] = best_sol.tolist()
-    with path.open("w") as f:
+    data["experiment_config_path"] = str(exp_conf_path)
+    data["end_iter"] = end_iter
+    if exception is not None:
+        sep = ", "
+        data[
+            "exception"
+        ] = f"{type(exception).__name__}: {sep.join(map(str, exception.args))}"
+        data["traceback"] = "\n".join(format_tb(exception.__traceback__))
+    with results_path.open("w") as f:
         json.dump(data, f)
 
 
@@ -38,6 +43,7 @@ def process_generation_data(next_gen_data: NextGenData, data: dict[str, Any]):
         data_costs = {}
         data_costs["mean"] = [costs_arr.mean()]
         data_costs["std_dev"] = [costs_arr.std()]
+        data_costs["best"] = [costs_arr[np.isfinite(costs_arr)].min()]
         data["costs"] = data_costs
         data["no_of_fix_failures"] = [next_gen_data.no_of_fix_failures]
         data["mutation_p"] = [next_gen_data.mutation_p]
@@ -45,6 +51,7 @@ def process_generation_data(next_gen_data: NextGenData, data: dict[str, Any]):
     else:
         data["costs"]["mean"].append(costs_arr.mean())
         data["costs"]["std_dev"].append(costs_arr.std())
+        data["costs"]["best"].append(costs_arr[np.isfinite(costs_arr)].min())
         data["no_of_fix_failures"].append(next_gen_data.no_of_fix_failures)
         data["mutation_p"].append(next_gen_data.mutation_p)
         data["crossover_inv_p"].append(next_gen_data.crossover_inv_p)
