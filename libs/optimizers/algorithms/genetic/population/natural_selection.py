@@ -134,10 +134,16 @@ def replace_invalid_offspring(
         fail_ixs[i1:i2p1] = -1, -1
     for ix in (i for i in fail_ixs if i != -1):
         # FIXME remove
+        # try:
+        #     p1c, p2c = parent_costs[ix : ix + 2]
+        # except ValueError as e:
+        #     print(f"ERROR - {ix = }, {len(parent_costs) = }, {fail_ixs = }")
+        #     raise e
+        p1cix = ix - ix % 2
         try:
-            p1c, p2c = parent_costs[ix : ix + 2]
+            p1c, p2c = parent_costs[p1cix : p1cix + 2]
         except ValueError as e:
-            print(f"ERROR - {ix = }, {len(parent_costs) = }, {fail_ixs = }")
+            print(f"ERROR - {p1cix = }, {len(parent_costs) = }")
             raise e
         if p1c < p2c:
             p = parents[ix // 2][0]
