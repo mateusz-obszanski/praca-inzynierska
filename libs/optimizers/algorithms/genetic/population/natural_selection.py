@@ -86,7 +86,7 @@ def select_population_with_probability(
     # FIXME remove
     try:
         passed_ixs = rng.choice(
-            to_be_graded_len, p=probabilities, size=to_be_graded_len, replace=False
+            to_be_graded_len, p=probabilities, size=len(parents), replace=False
         )
     except ValueError as e:
         print(f"{to_be_graded_len = }, {len(probabilities) = }")
@@ -133,7 +133,12 @@ def replace_invalid_offspring(
         offspring[i1:i2p1] = p1.copy(), p2.copy()
         fail_ixs[i1:i2p1] = -1, -1
     for ix in (i for i in fail_ixs if i != -1):
-        p1c, p2c = parent_costs[ix : ix + 2]
+        # FIXME remove
+        try:
+            p1c, p2c = parent_costs[ix : ix + 2]
+        except ValueError as e:
+            print(f"ERROR - {ix = }, {len(parent_costs) = }, {fail_ixs = }")
+            raise e
         if p1c < p2c:
             p = parents[ix // 2][0]
         else:

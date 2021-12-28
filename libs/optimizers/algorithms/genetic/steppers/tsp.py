@@ -135,5 +135,5 @@ def genetic_stepper_tsp(
         )
         yield next_gen, generation_data, rng  # type: ignore
 
-        parents = next_gen
+        population = next_gen
         costs = next_gen_costs

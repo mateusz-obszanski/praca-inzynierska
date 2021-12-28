@@ -68,8 +68,13 @@ def experiment_tsp(
             )
             best_sol = population[min_ix]
             i = 0
-            for i, (next_gen, next_gen_data, rng) in enumerate(take(generation_n, stepper)):
+            print("#################################################")
+            # for i, (next_gen, next_gen_data, rng) in enumerate(take(generation_n, stepper)):
+            for i, (next_gen, next_gen_data, rng) in enumerate(stepper):
+                if i >= generation_n:
+                    return
                 # FIXME remove
+                print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
                 print(f"{i = }{40*'-'}")
                 process_generation_data(next_gen_data, data)
                 current_min_obj = min(next_gen_data.costs)

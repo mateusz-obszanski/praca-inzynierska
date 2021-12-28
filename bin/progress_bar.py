@@ -81,13 +81,13 @@ class ExpProgress(Progress):
         task_early = self.task_early
         if task_early is not None:
             self.update(task_early, advance=1)
-            self.to_early += 1
-            if self.to_early >= self.early_stop:  # type: ignore
+            self.to_early -= 1
+            if self.to_early <= 0:  # type: ignore
                 raise EndExperiment(EndReason.EARLY_STOP)
 
     def reset_early_stop_cnt(self):
         if self.early_stop is not None:
-            self.to_early = 0
+            self.to_early = self.early_stop
             self.update(self.task_early, completed=0)  # type: ignore
 
 
