@@ -3,13 +3,11 @@ scipy
 sympy
 more-itertools
 pandas
-requests
-dash
-dash-bootstrap-components
-dash-extensions -i https://github.com/thedirtyfew/dash-extensions.git
 matplotlib
 seaborn
 pyqt5
+rich
+rich[jupyter]
 marshmallow
 marshmallow_dataclass
 marshmallow_enum
