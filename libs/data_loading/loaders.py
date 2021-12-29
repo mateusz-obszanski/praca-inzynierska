@@ -24,6 +24,7 @@ class ExperimentParser(ABC):
         generation_n: int,
         exp_timeout: int,
         early_stop_n: int,
+        map_path: Union[str, Path],
     ) -> ExperimentConfigBase:
         ...
 
@@ -44,8 +45,11 @@ class ParserTSP(ExperimentParser):
         generation_n: int,
         exp_timeout: int,
         early_stop_n: int,
+        map_path: Union[str, Path],
     ) -> ConfigTSP:
-        super().__call__(data, population_size, generation_n, exp_timeout, early_stop_n)
+        super().__call__(
+            data, population_size, generation_n, exp_timeout, early_stop_n, map_path
+        )
         data = self.convert_matrices(data)
         INITIAL_VX = 0
         rng: np.random.Generator = np.random.default_rng()
@@ -78,6 +82,7 @@ class ParserTSP(ExperimentParser):
             generation_n=generation_n,
             exp_timeout=exp_timeout,
             early_stop_n=early_stop_n,
+            map_path=str(map_path),
         )
 
 
@@ -89,6 +94,7 @@ class ParserVRP(ExperimentParser):
         generation_n: int,
         exp_timeout: int,
         early_stop_n: int,
+        map_path: Union[str, Path],
     ) -> ConfigVRP:
         data = self.convert_matrices(data)
         return super().__call__(data)
@@ -102,6 +108,7 @@ class ParserVRPP(ExperimentParser):
         generation_n: int,
         exp_timeout: int,
         early_stop_n: int,
+        map_path: Union[str, Path],
     ) -> ConfigVRPP:
         data = self.convert_matrices(data)
         return super().__call__(data)
@@ -115,6 +122,7 @@ class ParserIRP(ExperimentParser):
         generation_n: int,
         exp_timeout: int,
         early_stop_n: int,
+        map_path: Union[str, Path],
     ) -> ConfigIRP:
         data = self.convert_matrices(data)
         return super().__call__(data)
@@ -185,10 +193,13 @@ def get_experiment_config(
     parser = parser_map[exp_t]()
     with Path(path).open("r") as f:
         exp_data_to_validate = yaml.full_load(f)
-    # FIXME remove
-    print(f"{exp_data_to_validate['crossover_kwargs'] = }")
     exp_config_data: ExperimentConfigBase = parser(
-        exp_data_to_validate, population_size, generation_n, exp_timeout, early_stop_n
+        exp_data_to_validate,
+        population_size,
+        generation_n,
+        exp_timeout,
+        early_stop_n,
+        path,
     )
     return exp_config_data
 

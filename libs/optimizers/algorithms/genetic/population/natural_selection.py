@@ -76,21 +76,18 @@ def select_population_with_probability(
         to_be_graded = sorted_old_population
 
     # shift on y axis to 0 and add BIAS
-    grades = -sorted_old_costs + sorted_old_costs[np.isfinite(sorted_old_costs)].max() + BIAS
+    grades = (
+        -sorted_old_costs + sorted_old_costs[np.isfinite(sorted_old_costs)].max() + BIAS
+    )
     grades[~np.isfinite(grades)] = BIAS
 
     probabilities = grades / grades.sum()
 
     to_be_graded_len = len(to_be_graded)
 
-    # FIXME remove
-    try:
-        passed_ixs = rng.choice(
-            to_be_graded_len, p=probabilities, size=len(parents), replace=False
-        )
-    except ValueError as e:
-        print(f"{to_be_graded_len = }, {len(probabilities) = }")
-        raise e
+    passed_ixs = rng.choice(
+        to_be_graded_len, p=probabilities, size=len(parents), replace=False
+    )
 
     selected_population = [*best_n, *(to_be_graded[ix] for ix in passed_ixs)]
     selected_costs = [*costs_best_n, *(sorted_old_costs[ix] for ix in passed_ixs)]
@@ -107,44 +104,25 @@ def replace_invalid_offspring(
     assert 2 * len(parents) == len(parent_costs)
     assert 2 * len(parents) == len(offspring)
     assert len(offspring) == len(offspring_fix_statuses)
-    # FIXME remove
-    try:
-        fail_ixs = [i for i, success in enumerate(offspring_fix_statuses) if not success]
-    except TypeError as e:
-        print(f"{offspring_fix_statuses = }")
-        raise e
+
+    fail_ixs = [i for i, success in enumerate(offspring_fix_statuses) if not success]
     # fail pairs that have the same parents
-    # FIXME remove
-    try:
-        if len(fail_ixs) > 1:
-            fail_ix_pairs: tuple[tuple[int, int], ...] = tuple(
-                (i1, i2)
-                for i1, i2 in mit.windowed(fail_ixs, n=2)
-                if i1 % 2 == 0 and i1 == i2 - 1  # type: ignore
-            )
-        else:
-            fail_ix_pairs = ()
-    except TypeError as e:
-        print(f"{fail_ixs = }")
-        raise e
+    if len(fail_ixs) > 1:
+        fail_ix_pairs: tuple[tuple[int, int], ...] = tuple(
+            (i1, i2)
+            for i1, i2 in mit.windowed(fail_ixs, n=2)
+            if i1 % 2 == 0 and i1 == i2 - 1  # type: ignore
+        )
+    else:
+        fail_ix_pairs = ()
     for i1, i2 in fail_ix_pairs:
         p1, p2 = parents[i1 // 2]
         i2p1 = i2 + 1
         offspring[i1:i2p1] = p1.copy(), p2.copy()
         fail_ixs[i1:i2p1] = -1, -1
     for ix in (i for i in fail_ixs if i != -1):
-        # FIXME remove
-        # try:
-        #     p1c, p2c = parent_costs[ix : ix + 2]
-        # except ValueError as e:
-        #     print(f"ERROR - {ix = }, {len(parent_costs) = }, {fail_ixs = }")
-        #     raise e
         p1cix = ix - ix % 2
-        try:
-            p1c, p2c = parent_costs[p1cix : p1cix + 2]
-        except ValueError as e:
-            print(f"ERROR - {p1cix = }, {len(parent_costs) = }")
-            raise e
+        p1c, p2c = parent_costs[p1cix : p1cix + 2]
         if p1c < p2c:
             p = parents[ix // 2][0]
         else:

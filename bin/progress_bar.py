@@ -1,6 +1,5 @@
-from types import TracebackType
 from traceback import format_tb
-from typing import Optional, Type, Union
+from typing import Optional, Union, Protocol
 from time import time
 from enum import Enum, auto
 
@@ -8,7 +7,91 @@ from rich.console import Console
 from rich.progress import GetTimeCallable, Progress, ProgressColumn
 
 
-class ExpProgress(Progress):
+class ExpProgress(Protocol):
+    def __init__(
+        self,
+        total_iters: int,
+        *args,
+        timeout: Optional[int] = None,
+        early_stop: Optional[int] = None,
+        **kwargs,
+    ) -> None:
+        ...
+
+    def __enter__(self) -> "ExpProgress":
+        ...
+
+    def __exit__(self) -> None:
+        ...
+
+    def iteration_update(self) -> None:
+        """
+        Use only in context manager.
+        """
+
+        ...
+
+    def reset_early_stop_cnt(self) -> None:
+        """
+        Use only in context manager.
+        """
+
+        ...
+
+
+class ExpProgressSilent:
+    def __init__(
+        self,
+        total_iters: int,
+        timeout: Optional[int] = None,
+        early_stop: Optional[int] = None,
+    ) -> None:
+        self.total_iters = total_iters
+        self.timeout = timeout
+        self.early_stop = early_stop
+
+    def __enter__(self) -> "ExpProgressSilent":
+        self.iter_n = 0
+        early_stop = self.early_stop
+        if early_stop is not None:
+            self.to_early = early_stop
+        timeout = self.timeout
+        if timeout is not None:
+            self.to_timeout = timeout
+            self.t0 = time()
+        return self
+
+    def __exit__(self, *_) -> None:
+        ...
+
+    def iteration_update(self) -> None:
+        """
+        Use only in context manager.
+        """
+
+        self.iter_n += 1
+        if self.iter_n >= self.total_iters:
+            raise EndExperiment(EndReason.ITERATIONS)
+        if self.early_stop is not None:
+            t_delta = time() - self.t0
+            self.to_timeout -= t_delta
+            if self.to_timeout <= 0:
+                raise EndExperiment(EndReason.TIMEOUT)
+        if self.early_stop is not None:
+            self.to_early -= 1
+            if self.to_early <= 0:  # type: ignore
+                raise EndExperiment(EndReason.EARLY_STOP)
+
+    def reset_early_stop_cnt(self) -> None:
+        """
+        Use only in context manager.
+        """
+
+        if self.early_stop is not None:
+            self.to_early = self.early_stop
+
+
+class ExpProgressShow(Progress):
     def __init__(
         self,
         total_iters: int,
@@ -43,7 +126,7 @@ class ExpProgress(Progress):
         self.timeout = timeout
         self.early_stop = early_stop
 
-    def __enter__(self) -> "ExpProgress":
+    def __enter__(self) -> "ExpProgressShow":
         super().__enter__()
         self.iter_n = 0
         self.task_iters = self.add_task("[green]Iterations", total=self.total_iters)
@@ -62,7 +145,7 @@ class ExpProgress(Progress):
             self.task_time = None
         return self
 
-    def iteration_update(self):
+    def iteration_update(self) -> None:
         """
         Use only in context manager.
         """
@@ -85,7 +168,11 @@ class ExpProgress(Progress):
             if self.to_early <= 0:  # type: ignore
                 raise EndExperiment(EndReason.EARLY_STOP)
 
-    def reset_early_stop_cnt(self):
+    def reset_early_stop_cnt(self) -> None:
+        """
+        Use only in context manager.
+        """
+
         if self.early_stop is not None:
             self.to_early = self.early_stop
             self.update(self.task_early, completed=0)  # type: ignore

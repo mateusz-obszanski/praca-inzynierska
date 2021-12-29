@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Literal, overload
+from typing import Any, Literal, Union, overload
 
 import numpy as np
 from bin.exceptions import InitialPopFixError
@@ -37,6 +37,7 @@ def generate_rand_conf(
     generation_n: int,
     timeout: int,
     early_stop_iters: int,
+    map_path: Union[str, Path],
 ) -> ConfigTSP:
     ...
 
@@ -49,6 +50,7 @@ def generate_rand_conf(
     generation_n: int,
     timeout: int,
     early_stop_iters: int,
+    map_path: Union[str, Path],
 ) -> ConfigVRP:
     ...
 
@@ -61,6 +63,7 @@ def generate_rand_conf(
     generation_n: int,
     timeout: int,
     early_stop_iters: int,
+    map_path: Union[str, Path],
 ) -> ConfigVRPP:
     ...
 
@@ -73,6 +76,7 @@ def generate_rand_conf(
     generation_n: int,
     timeout: int,
     early_stop_iters: int,
+    map_path: Union[str, Path],
 ) -> ConfigIRP:
     ...
 
@@ -84,6 +88,7 @@ def generate_rand_conf(
     generation_n: int,
     timeout: int,
     early_stop_iters: int,
+    map_path: Union[str, Path],
 ) -> ExperimentConfigBase:
     # for this function
     rng = np.random.default_rng()
@@ -98,6 +103,7 @@ def generate_rand_conf(
             hyperparams,
             rng,
             rng_seed=rng.integers((1 << 32) - 1),
+            map_path=map_path,
         )
     else:
         raise NotImplementedError(exp_t)
@@ -112,6 +118,7 @@ def _generate_rand_conf_tsp(
     hyperparams: dict[str, Any],
     rng: Rng,
     rng_seed: int,
+    map_path: Union[str, Path],
 ) -> ConfigTSP:
     RETRY_N = 100
     initial_vx = env_data.get("initial_vx", 0)
@@ -128,26 +135,10 @@ def _generate_rand_conf_tsp(
         )
     ]
     if inv_sol_ixs:
-        nl = "\n"
-        print(f"before fixing: {nl.join(map(str, population))}")
         i = 0
         retries = 0
         while i < len(inv_sol_ixs):
             if retries > RETRY_N:
-                # FIXME remove
-                print(
-                    "\n".join(
-                        f"{sol}{'x' if i in inv_sol_ixs else ''}"
-                        for i, sol in enumerate(population)
-                    )
-                )
-                inv_transitions = [
-                    f"{i}->{j}"
-                    for i in range(len(dist_mx))
-                    for j in range(len(dist_mx))
-                    if dist_mx[i, j] == -1
-                ]
-                print(f"{inv_transitions = }")
                 raise InitialPopFixError
             sol_ix = inv_sol_ixs[i]
             inv_sol = population[sol_ix]
@@ -160,17 +151,14 @@ def _generate_rand_conf_tsp(
                 max_retries=1,
             )
             if fix_status:
-                print(f"fixed individual {sol_ix}")
                 population[sol_ix] = np.array(fixed, dtype=np.int64)
                 retries = 0
             else:
-                print(f"will regenerate individual {sol_ix}")
                 retries += 1
                 new_sol, rng = create_tsp_sol_rand(dist_mx, initial_vx, rng)
                 population[sol_ix] = np.array(new_sol, dtype=np.int64)
                 continue
             i += 1
-        print(f"after fixing: {nl.join(map(str, population))}")
     population = [np.array(c, dtype=np.int64) for c in population]
     f_map = EXP_ALLOWED_FUNCS[ExperimentType.TSP]
     crossover = rng.choice(f_map["crossovers"])
@@ -182,10 +170,6 @@ def _generate_rand_conf_tsp(
     mutators = f_map["mutators"]
     mut_kws = {mutate_swap: {}}
     mut_ps = {mutate_swap: rng.choice(hyperparams["mutation_rates"])}
-    # FIXME remove
-    print(f"{cross_kws = }")
-    print(f"{mut_kws = }")
-    print(f"{mut_ps = }")
     return ConfigTSP(
         population=population,
         dyn_costs=env_data["dyn_costs"],
@@ -202,4 +186,5 @@ def _generate_rand_conf_tsp(
         generation_n=generation_n,
         exp_timeout=timeout,
         early_stop_n=early_stop_iters,
+        map_path=str(map_path),
     )

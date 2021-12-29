@@ -93,7 +93,6 @@ def select_best_parents_with_probability(
     BIAS = 1e-3
 
     attractiveness = -np.array(costs, dtype=np.float64)
-    print(f"{costs = }\n{attractiveness = }")
     attractiveness[~np.isfinite(attractiveness)] = 0
     # shift to [0, max-min]
     attractiveness += attractiveness.min()
@@ -101,18 +100,9 @@ def select_best_parents_with_probability(
     attractiveness += BIAS
 
     probabilities = probabilities_by_value(attractiveness)
-    try:
-        ixs_by_probability = rng.choice(
-            population_size, p=probabilities, size=population_size, replace=False
-        )
-    except ValueError as e:
-        print(f"{population_size = }, {len(probabilities) = }")
-        raise e
-    except Exception as e:
-        # FIXME remove
-        print(f"{costs = }")
-        print(f"{probabilities = }")
-        raise e
+    ixs_by_probability = rng.choice(
+        population_size, p=probabilities, size=population_size, replace=False
+    )
 
     paired_parents: list[PairedChromosomes] = [
         (population[i], population[j])  # type: ignore

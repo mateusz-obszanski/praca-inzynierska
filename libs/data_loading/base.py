@@ -81,6 +81,7 @@ class ConfigTSP(ExperimentConfigBase):
     generation_n: int
     exp_timeout: int
     early_stop_n: int
+    map_path: str
 
     def data_to_json(self) -> dict[str, Any]:
         return super().data_for_json()

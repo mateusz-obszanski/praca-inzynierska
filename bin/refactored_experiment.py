@@ -1,8 +1,13 @@
 from pathlib import Path
+from time import time
 
-from more_itertools import take
 import numpy as np
-from bin.progress_bar import ExpProgress, EndReason, EndExperiment
+from bin.progress_bar import (
+    ExpProgressShow,
+    EndReason,
+    EndExperiment,
+    ExpProgressSilent,
+)
 
 from bin.utils import process_generation_data, write_results
 from libs.data_loading.loaders import get_experiment_config
@@ -21,12 +26,14 @@ def experiment_tsp(
     generation_n: int,
     exp_timeout: int,
     early_stop_n: int,
+    silent: bool = True,
 ):
     """
     ExpProgress is responsible for raising EndExperiment exception.
     """
 
     i = -1
+    t0 = time()
     try:
         _results_path = Path(results_path)
         del results_path
@@ -39,6 +46,7 @@ def experiment_tsp(
             early_stop_n,
         )
         rng = np.random.default_rng(exp_config.rng_seed)
+        t0 = time()
         stepper = genetic_stepper_tsp(
             population=exp_config.population,
             dyn_costs=exp_config.dyn_costs,
@@ -54,7 +62,8 @@ def experiment_tsp(
             rng=rng,
         )
         generation_n = exp_config.generation_n
-        with ExpProgress(
+        progress_handler = ExpProgressSilent if silent else ExpProgressShow
+        with progress_handler(
             total_iters=generation_n,
             timeout=exp_config.exp_timeout,
             early_stop=exp_config.early_stop_n,
@@ -68,14 +77,10 @@ def experiment_tsp(
             )
             best_sol = population[min_ix]
             i = 0
-            print("#################################################")
             # for i, (next_gen, next_gen_data, rng) in enumerate(take(generation_n, stepper)):
             for i, (next_gen, next_gen_data, rng) in enumerate(stepper):
                 if i >= generation_n:
                     return
-                # FIXME remove
-                print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-                print(f"{i = }{40*'-'}")
                 process_generation_data(next_gen_data, data)
                 current_min_obj = min(next_gen_data.costs)
                 if current_min_obj < min_cost:
@@ -89,11 +94,20 @@ def experiment_tsp(
                     progress.reset_early_stop_cnt()
                 progress.iteration_update()
     except EndExperiment as end_exp:
+        tk = time()
         write_results(
-            best_sol, end_exp.reason, data, exp_conf_path, _results_path, end_iter=i  # type: ignore
+            best_sol,  # type: ignore
+            end_exp.reason,
+            data,  # type: ignore
+            exp_conf_path,
+            _results_path,  # type: ignore
+            end_iter=i,
+            map_path=exp_config.map_path,  # type: ignore
+            exec_time=(tk - t0),
         )
         return
     except Exception as e:
+        tk = time()
         end_exp_obj = EndExperiment(EndReason.EXCEPTION, exception=e)
         write_results(
             np.array([]),
@@ -102,6 +116,8 @@ def experiment_tsp(
             exp_conf_path=exp_conf_path,
             results_path=_results_path,  # type: ignore
             end_iter=i,
+            map_path=exp_config.map_path,  # type: ignore
             exception=end_exp_obj.exception,
+            exec_time=(tk - t0),
         )
-        return
+        raise e
