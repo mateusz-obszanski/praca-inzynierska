@@ -16,9 +16,9 @@ __pycache__
 # Dev
 # /__dev
 /docs/results_debug
-/data
 *playground*
 
 # Misc
 *.tmp
 *untitled*
+deprecated
