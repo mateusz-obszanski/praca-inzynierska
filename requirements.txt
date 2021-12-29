@@ -5,6 +5,8 @@ more-itertools
 pandas
 matplotlib
 seaborn
+jupyter
+jupyterlab
 pyqt5
 rich
 rich[jupyter]
