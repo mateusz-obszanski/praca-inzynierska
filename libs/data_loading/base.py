@@ -89,7 +89,26 @@ class ConfigTSP(ExperimentConfigBase):
 
 @dataclass
 class ConfigVRP(ExperimentConfigBase):
-    vehicle_n: int
+    population: list[Chromosome]
+    dyn_costs: list[tuple[CostMx, ExpirTime]]
+    dist_mx: DistMx
+    crossover: CrossoverNDArray
+    crossover_kwargs: dict[str, Any]
+    mutators: list[Mutator]
+    mut_kwargs: dict[Mutator, dict[str, Any]]
+    mut_ps: dict[Mutator, float]
+    initial_vx: int
+    fix_max_add_iters: int
+    fix_max_retries: int
+    rng_seed: int
+    generation_n: int
+    exp_timeout: int
+    early_stop_n: int
+    map_path: str
+    salesmen_n: int
+
+    def data_to_json(self) -> dict[str, Any]:
+        return super().data_for_json()
 
 
 @dataclass

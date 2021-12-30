@@ -22,3 +22,5 @@ __pycache__
 *.tmp
 *untitled*
 deprecated
+!bin/deprecated
+data/experiments

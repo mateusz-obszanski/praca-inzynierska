@@ -31,6 +31,8 @@ def create_vrp_sol_rand(
     """
     If `regular_vx_division`, assigns regular number of vertices to visit for
     each salesman. Assumes that `len(ini_and_dummy_vxs) == <salesmen no.>`.
+
+    `dist_mx` must be extended.
     """
     vx_n = dist_mx.shape[0]
     salesmen_n = len(ini_and_dummy_vxs)
