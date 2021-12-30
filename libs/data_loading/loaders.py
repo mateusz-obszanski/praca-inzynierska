@@ -151,9 +151,54 @@ class ParserVRPP(ExperimentParser):
         exp_timeout: int,
         early_stop_n: int,
         map_path: Union[str, Path],
+        salesmen_n: int,
+        fillval: int,
     ) -> ConfigVRPP:
+        if not isinstance(salesmen_n, int):
+            raise ValueError(f"`salesmen_n` must be `int`, not `{type(salesmen_n)}`")
+        if not isinstance(fillval, int):
+            raise ValueError(f"`fillval` must be `int`, not `{type(fillval)}`")
         data = self.convert_matrices(data)
-        return super().__call__(data)
+        INITIAL_VX = 0
+        rng: np.random.Generator = np.random.default_rng()
+        population: Optional[list[list[int]]] = data.get("population")
+        if population is None:
+            pop_path = data.get("population_path")
+            if pop_path is None:
+                ext_dist_mx = extend_cost_mx(
+                    data["dist_mx"], copy_n=(salesmen_n - 1), to_copy_ix=INITIAL_VX
+                )
+                ini_and_dummy_vxs = {*range(salesmen_n)}
+                population = [
+                    create_vrp_sol_rand(
+                        ext_dist_mx, INITIAL_VX, rng, ini_and_dummy_vxs
+                    )[0]
+                    for _ in range(population_size)
+                ]
+            else:
+                population = load_data(pop_path)["population_path"]
+        func_map = EXP_ALLOWED_FUNCS[ExperimentType.VRPP]
+        return ConfigVRPP(
+            population=[np.array(x, dtype=np.int64) for x in population],  # type: ignore
+            dyn_costs=data["dyn_costs"],
+            dist_mx=data["dist_mx"],
+            crossover=get_f_by_name(data["crossover"], func_map["crossovers"]),
+            crossover_kwargs=data["crossover_kwargs"],
+            mutators=[get_f_by_name(m, func_map["mutators"]) for m in data["mutators"]],
+            mut_kwargs=data["mut_kwargs"],
+            mut_ps=data["mut_ps"],
+            initial_vx=INITIAL_VX,
+            fix_max_add_iters=data.get("fix_max_add_iters", 100),
+            fix_max_retries=data.get("fix_max_retries", 1),
+            rng_seed=data.get("rng_seed", 0),
+            generation_n=generation_n,
+            exp_timeout=exp_timeout,
+            early_stop_n=early_stop_n,
+            map_path=str(map_path),
+            salesmen_n=salesmen_n,
+            demands=tuple(data["demands"]),
+            fillval=data["fillval"],
+        )
 
 
 class ParserIRP(ExperimentParser):
@@ -165,6 +210,8 @@ class ParserIRP(ExperimentParser):
         exp_timeout: int,
         early_stop_n: int,
         map_path: Union[str, Path],
+        salesmen_n: int,
+        fillval: int,
     ) -> ConfigIRP:
         data = self.convert_matrices(data)
         return super().__call__(data)
@@ -204,6 +251,7 @@ def get_experiment_config(
     exp_timeout: int,
     early_stop_n: int,
     salesmen_n: int,
+    fillval: int,
 ) -> ConfigVRPP:
     ...
 
@@ -217,6 +265,7 @@ def get_experiment_config(
     exp_timeout: int,
     early_stop_n: int,
     salesmen_n: int,
+    fillval: int,
 ) -> ConfigIRP:
     ...
 
@@ -229,6 +278,7 @@ def get_experiment_config(
     exp_timeout: int,
     early_stop_n: int,
     salesmen_n: Optional[int] = None,
+    fillval: Optional[int] = None,
 ) -> ExperimentConfigBase:
     parser_map: dict[ExperimentType, type[ExperimentParser]] = {
         ExperimentType.TSP: ParserTSP,
@@ -239,8 +289,8 @@ def get_experiment_config(
     kwargs_map: dict[ExperimentType, dict[str, Any]] = {
         ExperimentType.TSP: {},
         ExperimentType.VRP: {"salesmen_n": salesmen_n},
-        ExperimentType.VRPP: {"salesmen_n": salesmen_n},
-        ExperimentType.IRP: {"salesmen_n": salesmen_n},
+        ExperimentType.VRPP: {"salesmen_n": salesmen_n, "fillval": fillval},
+        ExperimentType.IRP: {"salesmen_n": salesmen_n, "fillval": fillval},
     }
     parser = parser_map[exp_t]()
     with Path(path).open("r") as f:
@@ -266,6 +316,8 @@ def get_env_data(path: Union[str, Path]) -> dict[str, Any]:
         (np.array(dc, dtype=np.float64), t) for dc, t in gen_setup["dyn_costs"]
     ]
     data["initial_vx"] = 0
+    data["demands_vrpp"] = gen_setup["demands_sdvrp"]
+    data["demands_irp"] = gen_setup["demands_irp"]
     return data
 
 

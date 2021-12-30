@@ -240,13 +240,17 @@ def cost_calc_vrpp_core(
     initial_vx: int,
     forbidden_val: float,
     ini_and_dummy_vxs: set[int],
+    salesmen_n: int,
 ) -> float:
     """
     Distance matrix must be extended, the same for dyn_costs.
     """
     drone_seqs, _ = split_list_mult(vx_seq, ini_and_dummy_vxs)
     # ^^ splits at 0, so the first and the last subroutes is empty
-    drone_seqs = ((0, *sr, 0) for sr in drone_seqs[1:-1])
+    drone_seqs = tuple(chunk for chunk in drone_seqs if chunk)[:salesmen_n]
+    if not drone_seqs:
+        print("no chunks")
+        return float("inf")
     return max(
         cost_calc_core(ds, dyn_costs, distance_mx, initial_vx, forbidden_val)
         for ds in drone_seqs
@@ -260,8 +264,9 @@ def cost_calc_vrpp(
     initial_vx: int,
     forbidden_val: float,
     ini_and_dummy_vxs: set[int],
-    demands: tuple[int],
+    demands: tuple[int, ...],
     fillval: int,
+    salesmen_n: int,
 ) -> NonNormObjVec:
     """
     Distance matrix must be extended, the same for dyn_costs. Ignores fillvals.
@@ -280,6 +285,7 @@ def cost_calc_vrpp(
         initial_vx,
         forbidden_val=forbidden_val,
         ini_and_dummy_vxs=ini_and_dummy_vxs,
+        salesmen_n=salesmen_n,
     )
     reward = sum(rewards)
     return [cost, reward]
@@ -294,6 +300,7 @@ def cost_calc_irp(
     ini_and_dummy_vxs: set[int],
     demands: tuple[float],
     fillval: int,
+    salesmen_n: int,
     quantities: list[float],
     capacity: float,
 ) -> NonNormObjVec:
@@ -331,6 +338,7 @@ def cost_calc_irp(
         initial_vx,
         ini_and_dummy_vxs=ini_and_dummy_vxs,
         forbidden_val=forbidden_val,
+        salesmen_n=salesmen_n,
     )
     reward = sum(rewards)
     return [cost, reward]
