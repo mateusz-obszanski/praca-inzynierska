@@ -76,8 +76,11 @@ def select_population_with_probability(
         to_be_graded = sorted_old_population
 
     # shift on y axis to 0 and add BIAS
+    finite_sorted_old_costs = sorted_old_costs[np.isfinite(sorted_old_costs)]
     grades = (
-        -sorted_old_costs + sorted_old_costs[np.isfinite(sorted_old_costs)].max() + BIAS
+        -sorted_old_costs
+        + (finite_sorted_old_costs.max() if len(finite_sorted_old_costs) > 0 else 0)
+        + BIAS
     )
     grades[~np.isfinite(grades)] = BIAS
 
