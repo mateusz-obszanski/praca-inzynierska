@@ -222,16 +222,18 @@ def mutate_del(
 
 def mutate_del_irp(
     c: np.ndarray, p: float, rng: Rng, fillval: Any, quantities: np.ndarray
-) -> tuple[np.ndarray, Rng]:
+) -> tuple[np.ndarray, np.ndarray, Rng]:
     """
     `p` - probability of deletion at each index by inserting `fillval`.
     """
+
+    print(f"{c = }\n{quantities = }")
 
     seq_len = c.shape[0]
     marks = rng.random(size=seq_len) < p
     c[marks] = fillval
     quantities[marks] = 0.0
-    return c, rng
+    return c, quantities, rng
 
 
 def mutate_shuffle_ranges(seq: Sequence[T], p: float, rng: Rng) -> tuple[list[T], Rng]:

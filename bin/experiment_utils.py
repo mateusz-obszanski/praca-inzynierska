@@ -10,6 +10,7 @@ from rich.progress import track
 from rich import print as rprint
 import matplotlib.pyplot as plt
 import seaborn as sns
+from bin.experiment_irp import experiment_irp
 from bin.experiment_vrpp import experiment_vrpp
 
 from bin.rand_exp_config import generate_rand_conf
@@ -230,6 +231,76 @@ def execute_rand_experiments_vrpp(
                 early_stop_n=early_stop_n,
                 salesmen_n=salesmen_n,
                 fillval=fillval,
+                silent=True,
+            )
+        except Exception as e:
+            rprint(
+                f"[red]Exception during experiment #{i}:\n"
+                f"{format_exc()}\n"
+                f"""{type(e).__name__}: {", ".join(e.args)}"""
+            )
+
+
+def execute_rand_experiments_irp(
+    n: int,
+    salesmen_n: int,
+    fillval: int,
+    salesman_capacity: float,
+    default_quantity: float,
+    rng: Optional[np.random.Generator] = None,
+    generation_n: int = 10000,
+    exp_timeout: int = 5 * 60,
+    early_stop: Union[int, str] = "10%",
+):
+    """
+    `exp_timeout` - timeout of a single experiment,
+    `early_stop` - if int - max. no. of iterations without finding
+    a better solution, if str and end with % - ratio `<early stop iterations> / generation_n`
+    """
+
+    early_stop_n = _get_early_stop_n(early_stop, generation_n)
+    if rng is None:
+        rng = np.random.default_rng()
+    exp_t = ExperimentType.IRP
+    envs_dir = Path("data/environments/")
+    results_dir = Path("data/experiments/runs/irp/")
+    confs_dir = Path("data/experiments/configs/irp/")
+    # t - start time, n - experiment number
+    conf_fmt, results_fmt = (f"{pref}_{{t}}_no_{{n}}.json" for pref in ("conf", "exp"))
+    for i in track(range(1, n + 1), description="Running experiments..."):
+        datetime_str = get_datetime_str()
+        conf_path, results_path = (
+            str(d / fmt_str.format(t=datetime_str, n=i))
+            for d, fmt_str in zip((confs_dir, results_dir), (conf_fmt, results_fmt))
+        )
+        env_p, rng = get_rand_exp_map(exp_t, envs_dir, rng)
+        env_data = get_env_data(env_p)
+        rand_params, rng = get_rand_exp_params(rng)
+        conf = generate_rand_conf(
+            exp_t,
+            env_data,
+            population_size=rand_params["population_size"],
+            generation_n=generation_n,
+            timeout=exp_timeout,
+            early_stop_iters=early_stop_n,
+            map_path=env_p,
+            salesmen_n=salesmen_n,
+            fillval=fillval,
+            salesman_capacity=salesman_capacity,
+            default_quantity=default_quantity,
+        )
+        conf.save_to_json(conf_path)
+        try:
+            experiment_irp(
+                exp_conf_path=conf_path,
+                results_path=results_path,
+                population_size=rand_params["population_size"],
+                generation_n=generation_n,
+                exp_timeout=exp_timeout,
+                early_stop_n=early_stop_n,
+                salesmen_n=salesmen_n,
+                fillval=fillval,
+                salesman_capacity=salesman_capacity,
                 silent=True,
             )
         except Exception as e:

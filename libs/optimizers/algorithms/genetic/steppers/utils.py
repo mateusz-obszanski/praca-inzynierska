@@ -33,3 +33,17 @@ def apply_mutators(
         m_name = m.__name__  # type: ignore
         c, rng = m(c, mut_ps[m_name], rng, **mut_kwargs[m_name])
     return c, rng
+
+
+def apply_mutators_irp(
+    c: np.ndarray,
+    mutators: Iterable[Mutator],
+    mut_ps: dict[Mutator, float],
+    mut_kwargs: dict[Mutator, dict[str, Any]],
+    rng: Rng,
+    quantities: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray, Rng]:
+    for m in mutators:
+        m_name = m.__name__  # type: ignore
+        c, quantities, rng = m(c, mut_ps[m_name], rng, quantities=quantities, **mut_kwargs[m_name])  # type: ignore
+    return c, quantities, rng

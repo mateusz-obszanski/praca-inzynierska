@@ -249,7 +249,6 @@ def cost_calc_vrpp_core(
     # ^^ splits at 0, so the first and the last subroutes is empty
     drone_seqs = tuple(chunk for chunk in drone_seqs if chunk)[:salesmen_n]
     if not drone_seqs:
-        print("no chunks")
         return float("inf")
     return max(
         cost_calc_core(ds, dyn_costs, distance_mx, initial_vx, forbidden_val)
@@ -298,7 +297,7 @@ def cost_calc_irp(
     initial_vx: int,
     forbidden_val: float,
     ini_and_dummy_vxs: set[int],
-    demands: tuple[float],
+    demands: tuple[float, ...],
     fillval: int,
     salesmen_n: int,
     quantities: list[float],
