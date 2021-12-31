@@ -25,3 +25,4 @@ deprecated
 !bin/deprecated
 data/experiments
 data/!analysis_results*.json
+debugging_experiments.py

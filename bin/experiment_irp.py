@@ -11,7 +11,7 @@ from bin.progress_bar import (
 
 from bin.utils import process_generation_data, write_results
 from libs.data_loading.loaders import get_experiment_config
-from libs.optimizers.algorithms.genetic.steppers.vrpp import genetic_stepper_vrpp
+from libs.optimizers.algorithms.genetic.steppers.irp import genetic_stepper_irp
 from libs.data_loading.utils import ExperimentType
 
 
@@ -19,7 +19,7 @@ Chromosome = np.ndarray
 Population = list[Chromosome]
 
 
-def experiment_vrpp(
+def experiment_irp(
     exp_conf_path: str,
     results_path: str,
     population_size: int,
@@ -29,6 +29,7 @@ def experiment_vrpp(
     salesmen_n: int,
     fillval: int,
     # weights: tuple[float, float],
+    salesman_capacity: float,
     silent: bool = True,
 ):
     """
@@ -41,7 +42,7 @@ def experiment_vrpp(
         _results_path = Path(results_path)
         del results_path
         exp_config = get_experiment_config(
-            ExperimentType.VRPP,
+            ExperimentType.IRP,
             exp_conf_path,
             population_size,
             generation_n,
@@ -50,10 +51,11 @@ def experiment_vrpp(
             salesmen_n,
             fillval,
             # weights,
+            salesman_capacity,
         )
         rng = np.random.default_rng(exp_config.rng_seed)
         t0 = time()
-        stepper = genetic_stepper_vrpp(
+        stepper = genetic_stepper_irp(
             population=exp_config.population,
             dyn_costs=exp_config.dyn_costs,
             dist_mx=exp_config.dist_mx,
@@ -69,7 +71,7 @@ def experiment_vrpp(
             salesmen_n=salesmen_n,
             demands=exp_config.demands,
             fillval=exp_config.fillval,
-            # weights=exp_config.weights,
+            salesman_capacity=exp_config.salesman_capacity,
         )
         generation_n = exp_config.generation_n
         progress_handler = ExpProgressSilent if silent else ExpProgressShow

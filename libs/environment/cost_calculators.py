@@ -1,4 +1,4 @@
-from typing import Callable, Generator, Protocol
+from typing import Generator, Optional, Protocol
 from collections.abc import Iterator, Sequence
 from math import isfinite
 
@@ -223,8 +223,22 @@ def cost_calc_vrp(
         # some vertices not present in the solution
         return [float("inf")]
     drone_seqs, _ = split_list_mult(vx_seq, ini_and_dummy_vxs)
-    # ^^ splits at 0, so the first and the last subroutes is empty
-    drone_seqs = ((0, *sr, 0) for sr in drone_seqs[1:-1])
+    at_least_one = False
+    for i, seq in enumerate(drone_seqs):
+        if not seq:
+            continue
+        at_least_one = True
+        if seq[0] != initial_vx:
+            if seq[-1] != initial_vx:
+                seq = [initial_vx, *seq, initial_vx]
+            else:
+                seq = [initial_vx, *seq]
+            drone_seqs[i] = seq
+        elif seq[-1] != initial_vx:
+            seq.append(initial_vx)
+    drone_seqs = (x for x in drone_seqs if x)
+    if not at_least_one:
+        return [float("inf")]
     return [
         max(
             cost_calc_core(ds, dyn_costs, distance_mx, initial_vx, forbidden_val)
@@ -241,19 +255,44 @@ def cost_calc_vrpp_core(
     forbidden_val: float,
     ini_and_dummy_vxs: set[int],
     salesmen_n: int,
-) -> float:
+    quantities: Optional[tuple[float]],
+) -> tuple[float, tuple[float, ...]]:
     """
     Distance matrix must be extended, the same for dyn_costs.
+    Returns cost and quantities associated with visited vertices.
     """
     drone_seqs, _ = split_list_mult(vx_seq, ini_and_dummy_vxs)
     # ^^ splits at 0, so the first and the last subroutes is empty
-    drone_seqs = tuple(chunk for chunk in drone_seqs if chunk)[:salesmen_n]
+    drone_seqs = [chunk for chunk in drone_seqs if chunk][:salesmen_n]
+    # left at vertices
+    left_quantities = (
+        quantities[: sum(len(seq) for seq in drone_seqs)]
+        if quantities is not None
+        else ()
+    )
+    at_least_one = False
+    for i, seq in enumerate(drone_seqs):
+        if not seq:
+            continue
+        at_least_one = True
+        if seq[0] != initial_vx:
+            if seq[-1] != initial_vx:
+                seq = [initial_vx, *seq, initial_vx]
+            else:
+                seq = [initial_vx, *seq]
+            drone_seqs[i] = seq
+        elif seq[-1] != initial_vx:
+            seq.append(initial_vx)
+    if not at_least_one:
+        return float("inf"), ()
     if not drone_seqs:
-        print("no chunks")
-        return float("inf")
-    return max(
-        cost_calc_core(ds, dyn_costs, distance_mx, initial_vx, forbidden_val)
-        for ds in drone_seqs
+        return float("inf"), ()
+    return (
+        max(
+            cost_calc_core(ds, dyn_costs, distance_mx, initial_vx, forbidden_val)
+            for ds in drone_seqs
+        ),
+        left_quantities,
     )
 
 
@@ -272,13 +311,12 @@ def cost_calc_vrpp(
     Distance matrix must be extended, the same for dyn_costs. Ignores fillvals.
     """
 
-    fillval_ixs = set(ix for ix, vx in enumerate(vx_seq) if vx == fillval)
-    vx_seq = [vx for ix, vx in enumerate(vx_seq) if ix not in fillval_ixs]
+    vx_seq = [vx for vx in vx_seq if vx != fillval]
     rewards = (
         0 if i in ini_and_dummy_vxs else max(d, sum(vx == i for vx in vx_seq))
         for i, d in enumerate(demands)
     )
-    cost = cost_calc_vrpp_core(
+    cost, _ = cost_calc_vrpp_core(
         vx_seq,
         dyn_costs,
         distance_mx,
@@ -286,8 +324,10 @@ def cost_calc_vrpp(
         forbidden_val=forbidden_val,
         ini_and_dummy_vxs=ini_and_dummy_vxs,
         salesmen_n=salesmen_n,
+        quantities=None,
     )
     reward = sum(rewards)
+    # FIXME remove
     return [cost, reward]
 
 
@@ -298,7 +338,7 @@ def cost_calc_irp(
     initial_vx: int,
     forbidden_val: float,
     ini_and_dummy_vxs: set[int],
-    demands: tuple[float],
+    demands: tuple[float, ...],
     fillval: int,
     salesmen_n: int,
     quantities: list[float],
@@ -315,9 +355,10 @@ def cost_calc_irp(
         q for ix, q in enumerate(quantities) if ix not in filler_ixs
     )
     quantity_cumsum = np.cumsum(valid_quantities)
+    # first out of bounds
     first_oob = next(
         (ix for ix, cs in enumerate(quantity_cumsum) if cs >= capacity), None
-    )  # first out of bounds
+    )
     if first_oob is not None:
         valid_quantities = (
             *valid_quantities[:first_oob],
@@ -325,13 +366,7 @@ def cost_calc_irp(
             *(it.repeat(0, len(valid_quantities) - first_oob - 1)),
         )
     assert len(valid_quantities) == len(vx_seq)
-    rewards = (
-        0
-        if i in ini_and_dummy_vxs
-        else max(d, sum(q for vx, q in zip(vx_seq, valid_quantities) if vx == i))
-        for i, d in enumerate(demands)
-    )
-    cost = cost_calc_vrpp_core(
+    cost, left_quantities = cost_calc_vrpp_core(
         vx_seq,
         dyn_costs,
         distance_mx,
@@ -339,6 +374,13 @@ def cost_calc_irp(
         ini_and_dummy_vxs=ini_and_dummy_vxs,
         forbidden_val=forbidden_val,
         salesmen_n=salesmen_n,
+        quantities=valid_quantities,  # type: ignore
+    )
+    rewards = (
+        0
+        if i in ini_and_dummy_vxs
+        else max(d, sum(q for vx, q in zip(vx_seq, left_quantities) if vx == i))
+        for i, d in enumerate(demands)
     )
     reward = sum(rewards)
     return [cost, reward]

@@ -3,20 +3,20 @@ from typing import Any
 
 import numpy as np
 
-from libs.environment.cost_calculators import DistMx, DynCosts, cost_calc_vrpp
+from libs.environment.cost_calculators import DistMx, DynCosts, cost_calc_irp
 from libs.environment.utils import check_transitions
 from libs.optimizers.algorithms.genetic.population.parent_selectors import (
     select_best_parents_with_probability,
 )
 from libs.optimizers.algorithms.genetic.operators.mutations import Mutator
 from libs.optimizers.algorithms.genetic.operators.crossovers import CrossoverNDArray
-from libs.optimizers.algorithms.genetic.operators.fixers import fix_vrpp
+from libs.optimizers.algorithms.genetic.operators.fixers import fix_irp
 from libs.optimizers.algorithms.genetic.population.natural_selection import (
     replace_invalid_offspring,
     select_population_with_probability,
 )
 from libs.utils.matrix import extend_cost_mx
-from .utils import ExpStepper, NextGenData, apply_mutators
+from .utils import ExpStepper, NextGenData, apply_mutators_irp
 from .exceptions import InitialPopInvalidError
 
 
@@ -25,7 +25,7 @@ Population = list[Chromosome]
 Rng = np.random.Generator
 
 
-def genetic_stepper_vrpp(
+def genetic_stepper_irp(
     population: Population,
     dyn_costs: DynCosts,
     dist_mx: DistMx,
@@ -39,8 +39,10 @@ def genetic_stepper_vrpp(
     fix_max_retries: int,
     rng: Rng,
     salesmen_n: int,
-    demands: tuple[int, ...],
+    demands: tuple[float, ...],
     fillval: int,
+    # weights: tuple[float, float],
+    salesman_capacity: float,
 ) -> ExpStepper:
     """
     For the first time yields initial population, its data and rng
@@ -48,9 +50,15 @@ def genetic_stepper_vrpp(
     If `natural_selector` is `None`, then offspring becomes the next generation.
     """
 
+    # raise NotImplementedError("weights")
+
     # [(mx, exp_t)] -> (mx, exp_t) -> mx -> mx[0, 0]
     forbidden_val = dyn_costs[0][0][0, 0]
-    pop_lists = tuple(c.tolist() for c in population)
+    pop_lists: tuple[list[int], ...]
+    quantity_lists: tuple[list[float], ...]
+    pop_lists, quantity_lists = zip(
+        *((c[:, 0].tolist(), c[:, 1].tolist()) for c in population)
+    )
     copy_n = salesmen_n - 1
     ext_dist_mx = extend_cost_mx(dist_mx, copy_n, to_copy_ix=initial_vx)
     ext_dyn_costs = tuple(
@@ -62,7 +70,7 @@ def genetic_stepper_vrpp(
         raise InitialPopInvalidError("some initial individuals were not valid", inv_ixs)
     ini_and_dummy_vxs = {*range(salesmen_n)}
     cost_vecs = [
-        cost_calc_vrpp(
+        cost_calc_irp(
             c,
             ext_dyn_costs,
             ext_dist_mx,
@@ -72,10 +80,12 @@ def genetic_stepper_vrpp(
             demands,
             fillval,
             salesmen_n,
+            qs,
+            salesman_capacity,
         )
-        for c in pop_lists
+        for c, qs in zip(pop_lists, quantity_lists)
     ]
-    costs = [v[0] for v in cost_vecs]
+    costs = [v[0] - v[1] for v in cost_vecs]
     cross_inv_p = crossover_kwargs.get("inversion_p")
     no_of_failures = sum(not success for success in fix_statuses)
     initial_data = NextGenData(costs, no_of_failures, mut_ps, cross_inv_p)
@@ -90,28 +100,34 @@ def genetic_stepper_vrpp(
             )
         )
         mutated_offspring = [
-            apply_mutators(c, mutators, mut_ps, mut_kwargs, rng)[0] for c in offspring
+            apply_mutators_irp(
+                c[:, 0], mutators, mut_ps, mut_kwargs, rng, quantities=c[:, 1]
+            )[:-1]
+            for c in offspring
         ]
         fix_results = [
-            fix_vrpp(
-                c.tolist(),
+            fix_irp(
+                c.astype(int).tolist(),
                 ext_dist_mx,
                 initial_vx,
                 forbidden_val,
                 fix_max_add_iters,
                 fix_max_retries,
                 fillval,
+                default_quantity=0,
+                quantities=qs.tolist(),
+                capacity=salesman_capacity,
             )
-            for c in mutated_offspring
+            for c, qs in mutated_offspring
         ]
-        fixed_offspring = [np.array(r[0], dtype=np.int64) for r in fix_results]
-        fix_statuses = [r[1] for r in fix_results]
+        fixed_offspring = [np.stack((r[0], r[1]), axis=1) for r in fix_results]
+        fix_statuses = [r[2] for r in fix_results]
         checked_offspring = replace_invalid_offspring(
             parents, fixed_offspring, parent_costs, fix_statuses
         )
         offspring_cost_vecs = [
-            cost_calc_vrpp(
-                c.tolist(),
+            cost_calc_irp(
+                c[:, 0].astype(int).tolist(),
                 ext_dyn_costs,
                 ext_dist_mx,
                 initial_vx,
@@ -120,6 +136,8 @@ def genetic_stepper_vrpp(
                 demands,
                 fillval,
                 salesmen_n,
+                quantities=c[:, 1].tolist(),
+                capacity=salesman_capacity,
             )
             for c in checked_offspring
         ]

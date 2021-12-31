@@ -2,15 +2,16 @@ from typing import Callable
 
 from libs.optimizers.algorithms.genetic.operators.mutations import (
     mutate_del,
+    mutate_del_irp,
     mutate_insert,
     mutate_insert_irp,
     mutate_swap,
+    mutate_swap_irp,
 )
 from libs.optimizers.algorithms.genetic.operators.crossovers import (
     crossover_k_loci_ndarray,
     crossover_k_loci_poisson_ndarray,
     crossover_k_loci_poisson_with_inversion_ndarray,
-    crossover_k_loci_with_inversion,
     crossover_k_loci_with_inversion_ndarray,
     crossover_ndarray,
 )
@@ -69,7 +70,7 @@ EXP_ALLOWED_FUNCS: dict[ExperimentType, dict[str, list[Callable]]] = {
         __fixers: [fix_vrpp],
     },
     __IRP: {
-        __mutators: [*__TSP_MUTATORS, mutate_insert_irp, mutate_del],
+        __mutators: [mutate_swap_irp, mutate_insert_irp, mutate_del_irp],
         __crossovers: __TSP_CROSSOVERS,
         __cost_calcs: [cost_calc_irp],
         __fixers: [fix_irp],
