@@ -35,14 +35,14 @@ def join_sequences(seqs: Sequence[Sequence[T1]], val: T2) -> list[Union[T1, T2]]
 
 def split_list_mult(
     seq: list[T], split_vals: Container[T]
-) -> tuple[tuple[Chunk[T], ...], OrderedSplitVals[T]]:
+) -> tuple[list[Chunk[T]], OrderedSplitVals[T]]:
     split_ixs, ordered_split_vals = zip(
         *((i, v) for i, v in enumerate(seq) if v in split_vals)
     )
-    chunks = tuple(
+    chunks = [
         seq[b + 1 : e]  # type: ignore
         for b, e in mit.windowed(it.chain((-1,), split_ixs, (len(seq),)), n=2)
-    )
+    ]
     return chunks, ordered_split_vals  # type: ignore
 
 

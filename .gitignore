@@ -24,3 +24,4 @@ __pycache__
 deprecated
 !bin/deprecated
 data/experiments
+debugging_experiments.py

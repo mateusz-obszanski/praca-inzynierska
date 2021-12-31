@@ -297,6 +297,7 @@ def get_experiment_config(
     early_stop_n: int,
     salesmen_n: int,
     fillval: int,
+    # weights: tuple[float, float],
 ) -> ConfigVRPP:
     ...
 
@@ -311,6 +312,7 @@ def get_experiment_config(
     early_stop_n: int,
     salesmen_n: int,
     fillval: int,
+    # weights: tuple[float, float],
     salesman_capacity: float,
 ) -> ConfigIRP:
     ...
@@ -325,6 +327,7 @@ def get_experiment_config(
     early_stop_n: int,
     salesmen_n: Optional[int] = None,
     fillval: Optional[int] = None,
+    # weights: Optional[tuple[float, float]] = None,
     salesman_capacity: Optional[float] = None,
 ) -> ExperimentConfigBase:
     parser_map: dict[ExperimentType, type[ExperimentParser]] = {
@@ -336,11 +339,16 @@ def get_experiment_config(
     kwargs_map: dict[ExperimentType, dict[str, Any]] = {
         ExperimentType.TSP: {},
         ExperimentType.VRP: {"salesmen_n": salesmen_n},
-        ExperimentType.VRPP: {"salesmen_n": salesmen_n, "fillval": fillval},
+        ExperimentType.VRPP: {
+            "salesmen_n": salesmen_n,
+            "fillval": fillval,
+            # "weights": weights,
+        },
         ExperimentType.IRP: {
             "salesmen_n": salesmen_n,
             "fillval": fillval,
             "salesman_capacity": salesman_capacity,
+            # "weights": weights,
         },
     }
     parser = parser_map[exp_t]()

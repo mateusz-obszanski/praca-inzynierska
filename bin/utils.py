@@ -3,10 +3,14 @@ from typing import Any, Optional, Union, TypeVar
 import json
 from datetime import datetime
 from traceback import format_tb
+from enum import Enum, auto
+from math import isfinite
+import os
 
 import numpy as np
 
 from libs.optimizers.algorithms.genetic.steppers.utils import NextGenData
+from libs.environment.cost_calculators import normalize_obj_max, normalize_obj_min
 from libs.data_loading.utils import ExperimentType
 from bin.progress_bar import EndReason
 
@@ -26,6 +30,12 @@ def write_results(
     exception: Optional[Exception] = None,
 ):
     results_path = Path(results_path)
+    # add process id to the file name before extension
+    parts = results_path.parts
+    filename_parts = parts[-1].split(".")
+    filename_parts[-2] = f"{filename_parts[-2]}_pid-{os.getpid()}"
+    filename = ".".join(filename_parts)
+    results_path = Path(*parts[:-1], filename)
     data["end_reason"] = end_reason.name.lower()
     data["best_sol"] = best_sol.tolist()
     data["experiment_config_path"] = str(exp_conf_path)
@@ -108,8 +118,31 @@ def get_rand_exp_map(
 
 
 def get_datetime_str() -> str:
-    return datetime.now().strftime(r"%Y-%M-%d_%H-%m-%S")
+    return datetime.now().strftime(r"%Y-%m-%d_%H-%M-%S")
 
 
 class NoFilesError(Exception):
     ...
+
+
+class NormMode(Enum):
+    MIN = auto()
+    MAX = auto()
+
+
+class ObjectiveNormalizer:
+    def __init__(self, mode: NormMode) -> None:
+        super().__init__()
+        self.highest: float = -float("inf")
+        self.lowest: float = float("inf")
+        self._normalizer = (
+            normalize_obj_min if mode == NormMode.MIN else normalize_obj_max
+        )
+
+    def normalize(self, new_obj: float) -> float:
+        if isfinite(new_obj):
+            if new_obj > self.highest:
+                self.highest = new_obj
+            elif new_obj < self.lowest:
+                self.lowest = new_obj
+        return self._normalizer(new_obj, self.highest, self.lowest)

@@ -1,12 +1,9 @@
 from collections import deque
-from dataclasses import dataclass
-from enum import Enum, auto
-from typing import Callable, Generator, Optional, Protocol, TypeVar, Union
+from typing import Callable, Generator, Optional, Protocol, TypeVar
 from collections.abc import Sequence
 import itertools as it
 import more_itertools as mit
 import math
-import sys
 
 import numpy as np
 
@@ -18,10 +15,8 @@ from libs.environment.utils import (
     find_invalid_transitions_vrpp,
 )
 
-from libs.optimizers.algorithms.genetic.population.chromosomes import ChromosomeTSP
 from libs.utils.iteration import (
     find_all_occurence_indices,
-    find_doubled_indices,
 )
 
 
@@ -316,28 +311,31 @@ def __get_sorted_swap_alternative_ixs(
     # in index `i` of valid swap alternative currently invalid vx must:
     # - be reachable from index `i - 1`
     # - have valid connection to one on index `i + 1`
-    return sorted(
-        (
-            vix
-            for vix in valid_vx_ixs
-            if check_transition(
-                chromosome[i - 1], chromosome[vix], cost_mx, forbidden_val
-            )
-            and check_transition(
-                chromosome[vix], chromosome[i + 1], cost_mx, forbidden_val
-            )
-            and check_transition(
-                chromosome[vix - 1], chromosome[i], cost_mx, forbidden_val
-            )
-            and check_transition(
-                chromosome[i], chromosome[vix + 1], cost_mx, forbidden_val
-            )
-        ),
-        key=lambda vix: cost_mx[chromosome[vix - 1], chromosome[i]]
-        + cost_mx[chromosome[i], chromosome[vix + 1]]
-        + cost_mx[chromosome[i - 1], chromosome[vix]]
-        + cost_mx[chromosome[vix], chromosome[i + 1]],
-    )
+    try:
+        return sorted(
+            (
+                vix
+                for vix in valid_vx_ixs
+                if check_transition(
+                    chromosome[i - 1], chromosome[vix], cost_mx, forbidden_val
+                )
+                and check_transition(
+                    chromosome[vix], chromosome[i + 1], cost_mx, forbidden_val
+                )
+                and check_transition(
+                    chromosome[vix - 1], chromosome[i], cost_mx, forbidden_val
+                )
+                and check_transition(
+                    chromosome[i], chromosome[vix + 1], cost_mx, forbidden_val
+                )
+            ),
+            key=lambda vix: cost_mx[chromosome[vix - 1], chromosome[i]]
+            + cost_mx[chromosome[i], chromosome[vix + 1]]
+            + cost_mx[chromosome[i - 1], chromosome[vix]]
+            + cost_mx[chromosome[vix], chromosome[i + 1]],
+        )
+    except IndexError:
+        return []
 
 
 def fix_vrpp(

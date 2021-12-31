@@ -4,6 +4,7 @@ from typing import Any, TypeVar, Optional, Union
 from traceback import format_exc
 from math import isfinite
 from statistics import stdev
+import os
 
 import numpy as np
 from rich.progress import track
@@ -19,6 +20,7 @@ from bin.experiment_vrp import experiment_vrp
 from bin.utils import get_rand_exp_map, get_datetime_str
 from libs.data_loading.utils import ExperimentType
 from libs.data_loading.loaders import get_env_data
+from libs.environment.cost_calculators import normalize_obj_max, normalize_obj_min
 
 
 Rng = TypeVar("Rng", bound=np.random.Generator)
@@ -42,7 +44,7 @@ def _get_early_stop_n(early_stop: Union[str, int], generation_n: int) -> int:
                 raise ValueError(
                     f"Could not convert `early_stop` ({early_stop}) to ratio (`float`)"
                 ) from e
-            early_stop_n = round(ratio * generation_n)
+            early_stop_n = round(generation_n / ratio)
         else:
             try:
                 early_stop_n = int(early_stop)
@@ -76,7 +78,9 @@ def execute_rand_experiments_tsp(
     results_dir = Path("data/experiments/runs/tsp/")
     confs_dir = Path("data/experiments/configs/tsp/")
     # t - start time, n - experiment number
-    conf_fmt, results_fmt = (f"{pref}_{{t}}_no_{{n}}.json" for pref in ("conf", "exp"))
+    conf_fmt, results_fmt = (
+        f"{pref}_{{t}}_no_{{n}}_pid_{os.getpid()}.json" for pref in ("conf", "exp")
+    )
     for i in track(range(1, n + 1), description="Running experiments..."):
         datetime_str = get_datetime_str()
         conf_path, results_path = (
@@ -245,7 +249,7 @@ def execute_rand_experiments_irp(
     n: int,
     salesmen_n: int,
     fillval: int,
-    salesman_capacity: float,
+    salesman_capacity: Union[float, str],
     default_quantity: float,
     rng: Optional[np.random.Generator] = None,
     generation_n: int = 10000,
@@ -290,6 +294,14 @@ def execute_rand_experiments_irp(
             default_quantity=default_quantity,
         )
         conf.save_to_json(conf_path)
+        demands = tuple(env_data["demands_vrpp"])
+        if isinstance(salesman_capacity, str):
+            if salesman_capacity.endswith("%"):
+                percent = float(salesman_capacity[:-1])
+                assert percent >= 0
+                salesman_capacity = percent * float(sum(demands))
+            else:
+                salesman_capacity = float(salesman_capacity)
         try:
             experiment_irp(
                 exp_conf_path=conf_path,

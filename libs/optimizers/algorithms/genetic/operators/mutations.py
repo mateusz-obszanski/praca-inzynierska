@@ -1,11 +1,9 @@
-from typing import Any, Iterable, TypeVar, Protocol
+from typing import Any, TypeVar, Protocol
 from collections.abc import Sequence
 
 import numpy as np
 import itertools as it
-import more_itertools as mit
 
-from libs.utils.iteration import join_sequences
 from libs.utils.random import randomly_chunkify, shuffle_ensure_change
 
 
@@ -201,7 +199,9 @@ def mutate_insert_irp(
     insert_ixs = np.fromiter((i for i, m in enumerate(ins_marks) if m), dtype=np.int64)
     c = np.insert(c, insert_ixs, rng.choice(vx_choice_pool, size=nonzero_ins_marks))
     quantities = np.insert(
-        c, insert_ixs, rng.uniform(*rand_quantity_range, size=nonzero_ins_marks)
+        quantities,
+        insert_ixs,
+        rng.uniform(*rand_quantity_range, size=nonzero_ins_marks),
     )
 
     return c, quantities, rng
@@ -227,7 +227,7 @@ def mutate_del_irp(
     `p` - probability of deletion at each index by inserting `fillval`.
     """
 
-    print(f"{c = }\n{quantities = }")
+    assert len(c) == len(quantities)
 
     seq_len = c.shape[0]
     marks = rng.random(size=seq_len) < p

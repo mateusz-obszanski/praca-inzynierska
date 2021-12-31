@@ -28,6 +28,7 @@ def experiment_irp(
     early_stop_n: int,
     salesmen_n: int,
     fillval: int,
+    # weights: tuple[float, float],
     salesman_capacity: float,
     silent: bool = True,
 ):
@@ -49,6 +50,7 @@ def experiment_irp(
             early_stop_n,
             salesmen_n,
             fillval,
+            # weights,
             salesman_capacity,
         )
         rng = np.random.default_rng(exp_config.rng_seed)

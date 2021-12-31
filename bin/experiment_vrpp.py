@@ -28,6 +28,7 @@ def experiment_vrpp(
     early_stop_n: int,
     salesmen_n: int,
     fillval: int,
+    # weights: tuple[float, float],
     silent: bool = True,
 ):
     """
@@ -48,6 +49,7 @@ def experiment_vrpp(
             early_stop_n,
             salesmen_n,
             fillval,
+            # weights,
         )
         rng = np.random.default_rng(exp_config.rng_seed)
         t0 = time()
@@ -67,6 +69,7 @@ def experiment_vrpp(
             salesmen_n=salesmen_n,
             demands=exp_config.demands,
             fillval=exp_config.fillval,
+            # weights=exp_config.weights,
         )
         generation_n = exp_config.generation_n
         progress_handler = ExpProgressSilent if silent else ExpProgressShow

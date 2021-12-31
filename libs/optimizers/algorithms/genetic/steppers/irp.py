@@ -41,6 +41,7 @@ def genetic_stepper_irp(
     salesmen_n: int,
     demands: tuple[float, ...],
     fillval: int,
+    # weights: tuple[float, float],
     salesman_capacity: float,
 ) -> ExpStepper:
     """
@@ -48,6 +49,8 @@ def genetic_stepper_irp(
 
     If `natural_selector` is `None`, then offspring becomes the next generation.
     """
+
+    # raise NotImplementedError("weights")
 
     # [(mx, exp_t)] -> (mx, exp_t) -> mx -> mx[0, 0]
     forbidden_val = dyn_costs[0][0][0, 0]
@@ -82,7 +85,7 @@ def genetic_stepper_irp(
         )
         for c, qs in zip(pop_lists, quantity_lists)
     ]
-    costs = [v[0] for v in cost_vecs]
+    costs = [v[0] - v[1] for v in cost_vecs]
     cross_inv_p = crossover_kwargs.get("inversion_p")
     no_of_failures = sum(not success for success in fix_statuses)
     initial_data = NextGenData(costs, no_of_failures, mut_ps, cross_inv_p)
@@ -99,7 +102,7 @@ def genetic_stepper_irp(
         mutated_offspring = [
             apply_mutators_irp(
                 c[:, 0], mutators, mut_ps, mut_kwargs, rng, quantities=c[:, 1]
-            )[0]
+            )[:-1]
             for c in offspring
         ]
         fix_results = [

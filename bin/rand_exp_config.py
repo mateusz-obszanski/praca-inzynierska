@@ -92,7 +92,7 @@ def generate_rand_conf(
     map_path: Union[str, Path],
     salesmen_n: int,
     fillval: int,
-    salesman_capacity: float,
+    salesman_capacity: Union[float, str],
     default_quantity: float,
 ) -> ConfigIRP:
     ...
@@ -108,7 +108,7 @@ def generate_rand_conf(
     map_path: Union[str, Path],
     salesmen_n: Optional[int] = None,
     fillval: Optional[int] = None,
-    salesman_capacity: Optional[float] = None,
+    salesman_capacity: Optional[Union[float, str]] = None,
     default_quantity: Optional[float] = None,
 ) -> ExperimentConfigBase:
     # for this function
@@ -467,7 +467,7 @@ def _generate_rand_conf_irp(
     map_path: Union[str, Path],
     salesmen_n: int,
     fillval: int,
-    salesman_capacity: float,
+    salesman_capacity: Union[float, str],
     default_quantity: float,
 ) -> ConfigIRP:
     RETRY_N = 100
@@ -476,6 +476,14 @@ def _generate_rand_conf_irp(
         env_data["dist_mx"], copy_n=(salesmen_n - 1), to_copy_ix=initial_vx
     )
     ini_and_dummy_vxs = {*range(salesmen_n)}
+    demands = tuple(env_data["demands_vrpp"])
+    if isinstance(salesman_capacity, str):
+        if salesman_capacity.endswith("%"):
+            percent = float(salesman_capacity[:-1])
+            assert percent >= 0
+            salesman_capacity = percent * float(sum(demands))
+        else:
+            salesman_capacity = float(salesman_capacity)
     population = [
         np.stack(
             create_irp_sol_rand(
@@ -575,7 +583,7 @@ def _generate_rand_conf_irp(
         early_stop_n=early_stop_iters,
         map_path=str(map_path),
         salesmen_n=salesmen_n,
-        demands=tuple(env_data["demands_vrpp"]),
+        demands=demands,
         fillval=fillval,
         salesman_capacity=salesman_capacity,
     )
