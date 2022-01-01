@@ -2,6 +2,7 @@ import itertools as it
 from typing import Any
 
 import numpy as np
+from scipy.optimize import dual_annealing
 
 from libs.environment.cost_calculators import DistMx, DynCosts, cost_calc_irp
 from libs.environment.utils import check_transitions
@@ -90,6 +91,7 @@ def genetic_stepper_irp(
     no_of_failures = sum(not success for success in fix_statuses)
     initial_data = NextGenData(costs, no_of_failures, mut_ps, cross_inv_p)
     yield population, initial_data, rng  # type: ignore
+    max_demand = max(demands)
     while True:
         parents, parent_costs, rng = select_best_parents_with_probability(
             population, costs, rng
@@ -120,11 +122,42 @@ def genetic_stepper_irp(
             )
             for c, qs in mutated_offspring
         ]
+
         fixed_offspring = [np.stack((r[0], r[1]), axis=1) for r in fix_results]
-        fix_statuses = [r[2] for r in fix_results]
         checked_offspring = replace_invalid_offspring(
             parents, fixed_offspring, parent_costs, fix_statuses
         )
+
+        def cost_fun(qs, vxs) -> float:
+            result = cost_calc_irp(
+                vxs,
+                ext_dyn_costs,
+                ext_dist_mx,
+                initial_vx,
+                forbidden_val,
+                ini_and_dummy_vxs,
+                demands,
+                fillval,
+                salesmen_n,
+                qs,
+                salesman_capacity,
+            )
+            return result[0] - result[1]
+
+        for (
+            i,
+            off,
+        ) in enumerate(checked_offspring):
+            vxs = off[:, 0]
+            low = np.full(shape=len(vxs), fill_value=0.0, dtype=np.float64)  # type: ignore
+            high = np.full(shape=len(vxs), fill_value=max_demand, dtype=np.float64)  # type: ignore
+            bounds = np.stack((low, high), axis=1).tolist()
+            try:
+                ann_res = dual_annealing(cost_fun, bounds=bounds, args=(vxs,))
+            except ValueError:
+                continue
+            sol_qs = ann_res.x
+            checked_offspring[i] = np.stack((vxs, sol_qs), axis=1)
         offspring_cost_vecs = [
             cost_calc_irp(
                 c[:, 0].astype(int).tolist(),
