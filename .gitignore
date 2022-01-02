@@ -24,5 +24,7 @@ __pycache__
 deprecated
 !bin/deprecated
 data/experiments
+data_archived
 data/!analysis_results*.json
 debugging_experiments.py
+*.log

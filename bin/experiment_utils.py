@@ -584,6 +584,35 @@ def analyze_by_criterium(
     cnt_map[dest_n] = dest_n_cnt + 1
 
 
+def analyze_by_crossover(
+    exp_data: dict[str, Any],
+    conf_data: dict[str, Any],
+    analyzed_crossover: dict[str, Any],
+    cnt_map_crossover: dict[str, int],
+):
+    cross = conf_data["crossover"]
+    if cross not in cnt_map_crossover:
+        cnt_map_crossover[cross] = 0
+    if cross not in analyzed_crossover:
+        analyzed_crossover[cross] = {
+            "mean_exec_t": 0,
+            "mean_cost_improvement": 0,
+            "mean_iters": 0,
+        }
+    cross_cnt = cnt_map_crossover[cross]
+    cost_improvement = get_cost_improvement(exp_data)
+    iter_n = len(exp_data["costs"]["current_best"])
+    for k, new_v in zip(
+        ("mean_exec_t", "mean_cost_improvement", "mean_iters"),
+        (exp_data["exec_time"], cost_improvement, iter_n),
+    ):
+        analyzed_crossover[cross][k] = (
+            cross_cnt * analyzed_crossover[cross][k] + new_v
+        ) / (cross_cnt + 1)
+
+    cnt_map_crossover[cross] = cross_cnt + 1
+
+
 def analyze_by_map(
     map_path: Union[str, Path],
     exp_data: dict[str, Any],
@@ -641,11 +670,13 @@ def analyze_data(dir_path: Union[str, Path]) -> dict[str, Any]:
         "by_destination_n": {},
         "by_population_size": {},
         "by_map": {},
+        "by_crossover": {},
     }
     by_dest_n_cnt = {}
     by_pop_size_cnt = {}
     by_map_cnt = {}
     by_map_cost_accumulator = {}
+    cnt_map_crossover = {}
     for results_f in track(
         tuple(f for f in Path(dir_path).iterdir() if f.is_file()),
         description="Processing files...",
@@ -667,6 +698,9 @@ def analyze_data(dir_path: Union[str, Path]) -> dict[str, Any]:
                     analyzed,
                     by_map_cnt,
                     by_map_cost_accumulator,
+                )
+                analyze_by_crossover(
+                    exp_data, conf_data, analyzed["by_crossover"], cnt_map_crossover
                 )
 
     return analyzed
