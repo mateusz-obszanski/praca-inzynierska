@@ -25,6 +25,7 @@ from libs.optimizers.algorithms.genetic.operators.fixers import (
     fix_vrpp,
 )
 from libs.optimizers.algorithms.genetic.operators.mutations import (
+    mutate_change,
     mutate_del,
     mutate_del_irp,
     mutate_insert,
@@ -569,6 +570,9 @@ def _generate_rand_conf_irp(
         m: rng.choice(mutation_rates)
         for m in (mutate_swap_irp, mutate_insert_irp, mutate_del_irp)
     }
+    mut_ps_quantities = {
+        m: rng.choice(mutation_rates) for m in (mutate_change, mutate_swap)
+    }
     return ConfigIRP(
         population=population,
         dyn_costs=env_data["dyn_costs"],
@@ -590,6 +594,7 @@ def _generate_rand_conf_irp(
         demands=demands,
         fillval=fillval,
         salesman_capacity=salesman_capacity,
+        mut_ps_quantities=mut_ps_quantities,  # type: ignore
     )
 
 

@@ -134,6 +134,9 @@ def cost_calc_core(
     vx_pair_iter: Iterator[tuple[int, int]] = mit.windowed(vx_seq, n=2)  # type: ignore
     try:
         v1, v2 = next(vx_pair_iter)
+        # FIXME quickfix irp
+        v1 = int(v1)
+        v2 = int(v2)
     except StopIteration:
         return 0
     EPS = 1e-4
@@ -182,6 +185,9 @@ def cost_calc_core(
                 while travel_t_v1_v2 < EPS:
                     try:
                         v1, v2 = next(vx_pair_iter)
+                        # FIME quickfix irp
+                        v1 = int(v1)
+                        v2 = int(v2)
                     except StopIteration:
                         if v2 == initial_vx:
                             return total_t
@@ -327,7 +333,6 @@ def cost_calc_vrpp(
         quantities=None,
     )
     reward = sum(rewards)
-    # FIXME remove
     return [cost, reward]
 
 

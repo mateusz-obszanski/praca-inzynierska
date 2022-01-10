@@ -20,7 +20,7 @@ class Mutator(Protocol):
 
 def mutate_swap(c: np.ndarray, p: float, rng: Rng) -> tuple[np.ndarray, Rng]:
     """
-    Shuffles `seq` on indices marked with probability `p`.
+    Shuffles `c` on indices marked with probability `p`.
     """
 
     marks = rng.random(size=c.shape[0]) < p
@@ -28,6 +28,22 @@ def mutate_swap(c: np.ndarray, p: float, rng: Rng) -> tuple[np.ndarray, Rng]:
     marked_elems, rng = shuffle_ensure_change(marked_elems, rng, max_iter=10)
     c[marks] = marked_elems
 
+    return c, rng
+
+
+def mutate_change(
+    c: np.ndarray, p: float, rng: Rng, bounds: Sequence[tuple[float, float]]
+) -> tuple[np.ndarray, Rng]:
+    """
+    Changes genes marked with probability `p`.
+    """
+
+    marks = rng.random(size=c.shape[0]) < p
+    c[marks] = tuple(
+        rng.uniform(bnd_min, bnd_max)
+        for (bnd_min, bnd_max), mark in zip(bounds, marks)
+        if mark
+    )
     return c, rng
 
 

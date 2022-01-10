@@ -29,6 +29,8 @@ class ExperimentConfigBase:
                 d[k] = v.name
             elif isinstance(v, set):
                 d[k] = [*v]
+            elif k == "mut_ps_quantities":
+                d[k] = {mk.__name__: mv for mk, mv in v.items()}
             elif k == "population":
                 d[k] = [a.tolist() for a in v]
             elif k == "dyn_costs":
@@ -170,6 +172,7 @@ class ConfigIRP(ExperimentConfigBase):
     demands: tuple[int, ...]
     fillval: int
     salesman_capacity: float
+    mut_ps_quantities: dict[Mutator, float]
 
     def data_to_json(self) -> dict[str, Any]:
         return super().data_for_json()

@@ -72,6 +72,7 @@ def experiment_irp(
             demands=exp_config.demands,
             fillval=exp_config.fillval,
             salesman_capacity=exp_config.salesman_capacity,
+            mut_ps_quantities=exp_config.mut_ps_quantities,
         )
         generation_n = exp_config.generation_n
         progress_handler = ExpProgressSilent if silent else ExpProgressShow

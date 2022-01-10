@@ -269,6 +269,7 @@ class ParserIRP(ExperimentParser):
             demands=tuple(data["demands"]),
             fillval=data["fillval"],
             salesman_capacity=salesman_capacity,
+            mut_ps_quantities=data["mut_ps_quantities"],
         )
 
 

@@ -3,7 +3,7 @@ import json
 from typing import Any, TypeVar, Optional, Union
 from traceback import format_exc
 from math import isfinite
-from statistics import stdev
+from statistics import mean, stdev
 import os
 
 import numpy as np
@@ -543,7 +543,7 @@ def get_cost_improvement(exp_data: dict[str, Any]) -> float:
     best = get_best_curr_cost(exp_data)
     if best is not None:
         first = exp_data["costs"]["current_best"][0]
-        cost_improvement = (first - best) / first
+        cost_improvement = (first - best) / abs(first)
     else:
         cost_improvement = 0
     return cost_improvement
@@ -702,6 +702,76 @@ def analyze_data(dir_path: Union[str, Path]) -> dict[str, Any]:
                 analyze_by_crossover(
                     exp_data, conf_data, analyzed["by_crossover"], cnt_map_crossover
                 )
+
+    return analyzed
+
+
+def analyze_data2(dir_path: Union[str, Path]) -> dict[str, Any]:
+    # by_map - by environment data file
+    # by_destination_n - by map size (no. of destinations)
+    # by_population_size - by GA's population size
+    # each dict in "by_population_size" and "by_destination_n" has fields:
+    # - "mean_exec_t",
+    # - "mean_cost_improvement",
+    # - "mean_iters",
+
+    data_accumulator = {
+        "destination_n": {},
+        "pop_size": {},
+        "crossover": {},
+        "map": {},
+    }
+
+    # data accumulation
+    for results_f in track(
+        tuple(f for f in Path(dir_path).iterdir() if f.is_file()),
+        description="Processing files...",
+    ):
+        with results_f.open("r") as f:
+            exp_data = json.load(f)
+            if "exception" in exp_data and exp_data["exception"]:
+                continue
+            with open(exp_data["experiment_config_path"], "r") as conf_f:
+                conf_data = json.load(conf_f)
+            iter_n = len(exp_data["costs"]["current_best"])
+            cost_improvement = get_cost_improvement(exp_data)
+            exec_t = exp_data["exec_time"]
+            map_path = conf_data["map_path"]
+            case_map = {
+                "destination_n": len(conf_data["dist_mx"]),
+                "pop_size": len(conf_data["population"]),
+                "crossover": conf_data["crossover"],
+                "map": map_path,
+            }
+            for case_k, concrete_case in case_map.items():
+                if concrete_case not in data_accumulator[case_k]:
+                    data_accumulator[case_k][concrete_case] = {
+                        "exec_t": [exec_t],
+                        "cost_improvement": [cost_improvement],
+                        "iters": [iter_n],
+                    }
+                else:
+                    cc_acc = data_accumulator[case_k][concrete_case]
+                    cc_acc["exec_t"].append(exec_t)
+                    cc_acc["cost_improvement"].append(cost_improvement)
+                    cc_acc["iters"].append(iter_n)
+            min_cost = data_accumulator["map"].get("min_cost", float("inf"))
+            curr_min_cost = get_best_curr_cost(exp_data) or float("inf")
+            if curr_min_cost < min_cost:
+                map_acc = data_accumulator["map"][map_path]
+                map_acc["min_cost"] = curr_min_cost
+                map_acc["best_sol"] = exp_data["best_sol"]
+    # analysis
+    analyzed = {crit: {} for crit in data_accumulator.keys()}
+    for crit, crit_data in data_accumulator.items():
+        for concrete_case, concrete_case_data in crit_data.items():
+            analyzed[crit][concrete_case] = {}
+            for data_kind in ("exec_t", "cost_improvement", "iters"):
+                valid_data = tuple(x for x in concrete_case_data[data_kind] if isfinite(x))
+                analyzed[crit][concrete_case][data_kind] = {
+                    "mean": mean(valid_data),
+                    "stddev": stdev(valid_data),
+                }
 
     return analyzed
 
