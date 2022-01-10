@@ -767,7 +767,9 @@ def analyze_data2(dir_path: Union[str, Path]) -> dict[str, Any]:
         for concrete_case, concrete_case_data in crit_data.items():
             analyzed[crit][concrete_case] = {}
             for data_kind in ("exec_t", "cost_improvement", "iters"):
-                valid_data = tuple(x for x in concrete_case_data[data_kind] if isfinite(x))
+                valid_data = tuple(
+                    x for x in concrete_case_data[data_kind] if isfinite(x)
+                )
                 analyzed[crit][concrete_case][data_kind] = {
                     "mean": mean(valid_data),
                     "stddev": stdev(valid_data),
